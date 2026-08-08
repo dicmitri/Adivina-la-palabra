@@ -1,49 +1,53 @@
-import { verifyFirebaseToken } from "./verifyFirebaseToken.js";
+import { createRouter } from "./router.js";
+import { json, preflightResponse, HttpError } from "./lib/http.js";
+import { requireUser } from "./lib/auth.js";
+import { getMe, createProfile } from "./routes/me.js";
+import { createLeague, joinLeague, listMyLeagues, updateLeague, deleteLeague } from "./routes/leagues.js";
+import { getToday, submitGuess } from "./routes/game.js";
+import { getLeaderboard } from "./routes/leaderboard.js";
+import { processRoundWinners } from "./scheduled.js";
 
-function json(data, init = {}) {
-  return new Response(JSON.stringify(data), {
-    ...init,
-    headers: { "content-type": "application/json", ...init.headers },
-  });
-}
+const router = createRouter();
 
-async function requireUser(request, env) {
-  const authHeader = request.headers.get("Authorization") || "";
-  const [scheme, token] = authHeader.split(" ");
-  if (scheme !== "Bearer" || !token) {
-    throw new Response(json({ error: "Missing bearer token" }, { status: 401 }));
-  }
-  try {
-    const payload = await verifyFirebaseToken(token, env.FIREBASE_PROJECT_ID);
-    return { uid: payload.sub, email: payload.email };
-  } catch (err) {
-    throw new Response(json({ error: "Invalid token", detail: err.message }, { status: 401 }));
-  }
+router.get("/api/health", async () => json({ ok: true }));
+router.get("/api/me", withAuth(getMe));
+router.post("/api/me", withAuth(createProfile));
+
+router.post("/api/leagues", withAuth(createLeague));
+router.post("/api/leagues/join", withAuth(joinLeague));
+router.get("/api/leagues/mine", withAuth(listMyLeagues));
+router.patch("/api/leagues/:id", withAuth(updateLeague));
+router.delete("/api/leagues/:id", withAuth(deleteLeague));
+
+router.get("/api/leagues/:id/today", withAuth(getToday));
+router.post("/api/leagues/:id/guess", withAuth(submitGuess));
+router.get("/api/leagues/:id/leaderboard", withAuth(getLeaderboard));
+
+function withAuth(handler) {
+  return async (request, env, ctx) => {
+    const user = await requireUser(request, env);
+    return handler(request, env, { ...ctx, user });
+  };
 }
 
 export default {
   async fetch(request, env) {
+    if (request.method === "OPTIONS") return preflightResponse();
+
     const url = new URL(request.url);
+    const matched = router.match(request.method, url.pathname);
+    if (!matched) return json({ error: "Not found" }, { status: 404 });
 
-    if (url.pathname === "/api/health") {
-      return json({ ok: true });
+    try {
+      return await matched.handler(request, env, { params: matched.params });
+    } catch (err) {
+      if (err instanceof HttpError) return json({ error: err.message }, { status: err.status });
+      console.error(err);
+      return json({ error: "Internal error" }, { status: 500 });
     }
+  },
 
-    if (url.pathname === "/api/me") {
-      let user;
-      try {
-        user = await requireUser(request, env);
-      } catch (response) {
-        return response;
-      }
-
-      const row = await env.DB.prepare("SELECT id, username, created_at FROM users WHERE id = ?")
-        .bind(user.uid)
-        .first();
-
-      return json({ uid: user.uid, email: user.email, profile: row ?? null });
-    }
-
-    return json({ error: "Not found" }, { status: 404 });
+  async scheduled(event, env) {
+    await processRoundWinners(env);
   },
 };
