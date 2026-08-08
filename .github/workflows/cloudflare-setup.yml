@@ -1,0 +1,46 @@
+# One-time (idempotent) provisioning of the Cloudflare resources this project
+# needs. Run manually from the Actions tab; it prints the account ID, the D1
+# database ID, and the workers.dev subdomain, which then get wired into
+# wrangler.toml and the deploy workflow.
+name: Cloudflare setup
+
+on:
+  workflow_dispatch:
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Who am I
+        run: npx --yes wrangler@3 whoami
+
+      - name: Create D1 database if missing
+        run: |
+          if npx --yes wrangler@3 d1 list --json | jq -e '.[] | select(.name=="adivina-la-palabra")' >/dev/null 2>&1; then
+            echo "D1 database 'adivina-la-palabra' already exists."
+          else
+            npx --yes wrangler@3 d1 create adivina-la-palabra
+          fi
+
+      - name: Create Pages project if missing
+        run: |
+          if npx --yes wrangler@3 pages project list | grep -q "adivina-la-palabra"; then
+            echo "Pages project already exists."
+          else
+            npx --yes wrangler@3 pages project create adivina-la-palabra --production-branch=main
+          fi
+
+      - name: Report IDs to wire into wrangler.toml
+        run: |
+          echo "=== D1 DATABASES ==="
+          npx --yes wrangler@3 d1 list --json
+          echo "=== PAGES PROJECTS ==="
+          npx --yes wrangler@3 pages project list

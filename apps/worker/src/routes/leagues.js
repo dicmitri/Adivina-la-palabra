@@ -16,21 +16,23 @@ export async function createLeague(request, env, { user }) {
   for (let attempt = 0; attempt < 5 && !inviteCode; attempt++) {
     const candidate = generateInviteCode();
     try {
-      await env.DB.prepare(
-        "INSERT INTO leagues (id, name, admin_id, frequency, invite_code) VALUES (?, ?, ?, ?, ?)"
-      )
-        .bind(id, name, user.uid, frequency, candidate)
-        .run();
+      // Batched so a league can never exist without its admin as a member —
+      // an orphaned league would be invisible to every query but would still
+      // hold its invite_code.
+      await env.DB.batch([
+        env.DB.prepare(
+          "INSERT INTO leagues (id, name, admin_id, frequency, invite_code) VALUES (?, ?, ?, ?, ?)"
+        ).bind(id, name, user.uid, frequency, candidate),
+        env.DB.prepare("INSERT INTO league_members (league_id, user_id) VALUES (?, ?)").bind(id, user.uid),
+      ]);
       inviteCode = candidate;
     } catch (err) {
-      // invite_code collision, retry with a new candidate
+      // Only an invite_code collision is worth retrying; anything else is a
+      // real failure and must not be reported as "try again".
+      if (!/UNIQUE constraint failed: leagues\.invite_code/i.test(err.message)) throw err;
     }
   }
-  if (!inviteCode) return json({ error: "Could not create league, try again" }, { status: 500 });
-
-  await env.DB.prepare("INSERT INTO league_members (league_id, user_id) VALUES (?, ?)")
-    .bind(id, user.uid)
-    .run();
+  if (!inviteCode) return json({ error: "Could not allocate an invite code, try again" }, { status: 503 });
 
   return json({ id, name, frequency, inviteCode, adminId: user.uid });
 }

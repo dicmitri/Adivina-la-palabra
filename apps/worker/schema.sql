@@ -1,7 +1,7 @@
 CREATE TABLE IF NOT EXISTS users (
   id TEXT PRIMARY KEY,           -- Firebase Auth uid
   username TEXT UNIQUE NOT NULL,
-  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now'))
 );
 
 CREATE TABLE IF NOT EXISTS leagues (
@@ -11,13 +11,13 @@ CREATE TABLE IF NOT EXISTS leagues (
   frequency TEXT NOT NULL CHECK (frequency IN ('daily', 'weekly', 'quarterly')),
   invite_code TEXT UNIQUE NOT NULL,
   last_processed_round_end TEXT,  -- ISO timestamp; cron cursor, see scheduled.js
-  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now'))
 );
 
 CREATE TABLE IF NOT EXISTS league_members (
   league_id TEXT NOT NULL REFERENCES leagues(id),
   user_id TEXT NOT NULL REFERENCES users(id),
-  joined_at TEXT NOT NULL DEFAULT (datetime('now')),
+  joined_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now')),
   PRIMARY KEY (league_id, user_id)
 );
 CREATE INDEX IF NOT EXISTS idx_league_members_user ON league_members(user_id);
