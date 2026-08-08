@@ -8,7 +8,7 @@ database_name = "adivina-la-palabra"
 database_id = "REPLACE_WITH_D1_DATABASE_ID"
 
 [vars]
-FIREBASE_PROJECT_ID = "REPLACE_WITH_FIREBASE_PROJECT_ID"
+FIREBASE_PROJECT_ID = "adivina-la-palabra-ligas"
 
 [triggers]
 crons = ["5 0 * * *"] # daily at 00:05 UTC, credits round wins for any round that just closed
