@@ -1,0 +1,11 @@
+name = "adivina-la-palabra-api"
+main = "src/index.js"
+compatibility_date = "2026-08-08"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "adivina-la-palabra"
+database_id = "REPLACE_WITH_D1_DATABASE_ID"
+
+[vars]
+FIREBASE_PROJECT_ID = "REPLACE_WITH_FIREBASE_PROJECT_ID"

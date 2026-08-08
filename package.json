@@ -1,0 +1,16 @@
+{
+  "name": "adivina-la-palabra",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/web",
+    "apps/worker"
+  ],
+  "scripts": {
+    "dev:web": "npm run dev --workspace apps/web",
+    "dev:worker": "npm run dev --workspace apps/worker",
+    "build:web": "npm run build --workspace apps/web",
+    "deploy:worker": "npm run deploy --workspace apps/worker"
+  }
+}
