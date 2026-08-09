@@ -4,14 +4,18 @@ import { apiFetch } from "../api.js";
 const WORD_LENGTH = 5;
 const MAX_ATTEMPTS = 6;
 
-// Matches the Tailwind classes below, so the tile lands on exactly the colour
-// the animation was heading towards.
-const TILE_BG = { correct: "#22c55e", present: "#eab308", absent: "#6b7280" };
-
 const FLIP_VARIANTS = ["up", "down", "right", "left"];
 const STAGGER_MS = 55;
 const FLIP_MS = 300; // keep in sync with .tile-reveal in index.css
 const REVEAL_TOTAL_MS = STAGGER_MS * (WORD_LENGTH - 1) + FLIP_MS;
+
+// Checked in JS rather than with a CSS media query so that skipping the
+// animation also skips the delay before the end-of-game panel. Note some
+// phones turn this on by themselves — Android battery saver does — which
+// looks identical to the animation being broken.
+const prefersReducedMotion = () =>
+  typeof window !== "undefined" &&
+  window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 
 function LetterTile({ char, status, reveal }) {
   const styles = {
@@ -21,15 +25,19 @@ function LetterTile({ char, status, reveal }) {
     present: "bg-yellow-500 border-yellow-500 text-white",
     absent: "bg-gray-500 border-gray-500 text-white",
   };
-  const animation = reveal ? `tile-reveal tile-reveal-${reveal.variant}` : "";
+  // The turn and the tint are separate animations played together; combining
+  // them here avoids a keyframe block per direction-and-colour pair.
   const animationStyle = reveal
-    ? { animationDelay: `${reveal.index * STAGGER_MS}ms`, "--tile-bg": TILE_BG[status] }
+    ? {
+        animationName: `tile-turn-${reveal.variant}, tile-tint-${status}`,
+        animationDelay: `${reveal.index * STAGGER_MS}ms`,
+      }
     : undefined;
 
   return (
     <div
       style={animationStyle}
-      className={`w-10 h-10 sm:w-14 sm:h-14 border-2 flex items-center justify-center text-xl sm:text-2xl font-bold rounded ${styles[status] || styles.empty} ${animation}`}
+      className={`w-10 h-10 sm:w-14 sm:h-14 border-2 flex items-center justify-center text-xl sm:text-2xl font-bold rounded ${styles[status] || styles.empty} ${reveal ? "tile-reveal" : ""}`}
     >
       {char}
     </div>
@@ -168,13 +176,15 @@ export default function GameBoard({ league, user, onScoreChange }) {
       setState(result);
       setCurrentGuess("");
       setRejectedWord(null);
-      setReveal({
-        row: result.guesses.length - 1,
-        variants: Array.from(
-          { length: WORD_LENGTH },
-          () => FLIP_VARIANTS[Math.floor(Math.random() * FLIP_VARIANTS.length)]
-        ),
-      });
+      if (!prefersReducedMotion()) {
+        setReveal({
+          row: result.guesses.length - 1,
+          variants: Array.from(
+            { length: WORD_LENGTH },
+            () => FLIP_VARIANTS[Math.floor(Math.random() * FLIP_VARIANTS.length)]
+          ),
+        });
+      }
       if (result.status === "won") onScoreChange?.();
     } catch (err) {
       showMsg(err.message);

@@ -249,6 +249,30 @@ Details worth keeping:
 Timing is 300ms per tile with a 55ms stagger (520ms total). `FLIP_MS` in
 `GameBoard.jsx` has to stay in sync with `.tile-reveal` in `index.css`.
 
+## 2026-08-09 — Tile animation did nothing on mobile
+
+Reported: the reveal had no effect at all on a phone.
+
+The first version read the target colour from a `--tile-bg` custom property
+*inside* the `@keyframes`. iOS Safari does not reliably resolve `var()` in
+keyframes, and when it fails it discards the whole animation rather than
+degrading — which matches "no effect whatsoever" precisely, while desktop
+worked.
+
+Restructured into two animations played together on each tile: one turns it
+(four directions, transform only) and one tints it (three colours, literal
+hex, no custom properties). The pair is combined per tile by setting
+`animation-name` inline, which keeps it at seven keyframe blocks instead of
+the twelve a direction-x-colour matrix would need. Verified after build that
+no keyframe block contains `var()`.
+
+Also moved the `prefers-reduced-motion` check out of CSS and into JS. It now
+skips the reveal *and* the delay before the end-of-game panel, where the
+media query only stopped the animation and left the delay in place. Worth
+knowing when this comes up again: some phones enable that setting on their
+own — Android battery saver does — and the result is indistinguishable from
+the animation being broken.
+
 ## 2026-08-09 — Accepted words can be removed again
 
 Approving a word was one-way: it went into `extra_words` and nothing in the
