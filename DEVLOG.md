@@ -106,3 +106,51 @@ downstream didn't.
 
 Still untested: the browser flow (signup → create league → guess →
 leaderboard) against the live stack.
+
+## 2026-08-09 — Word lists rebuilt; ñ and word-selection fixes
+
+Confirmed the full browser flow works against the live stack, then took on
+the problem that killed the family game: the word list contained obscure
+words *and* was missing ordinary ones.
+
+The fix was structural rather than a better-cleaned list. Both complaints
+came from one list serving two conflicting jobs — it had to be permissive
+enough to accept any guess, which forced it to hold obscure words, which
+then became answers. Splitting it makes each job easy:
+
+- `allowed.json` (8,952 words) — accepted as guesses. Permissive on
+  purpose; obscurity here just means fewer real words wrongly rejected.
+- `answers.json` (1,213 words, ~3.3 years at one/day) — the only source of
+  secret words.
+
+`scripts/build_wordlists.py` regenerates both. Answers must clear a
+frequency threshold (wordfreq zipf ≥ 2.8), be their own lemma (drops
+conjugated verbs and plurals — simplemma caught 12/12 in testing), appear
+in the legacy Spanish word list (drops most proper nouns, which the
+lowercased corpus is full of), not be tagged PROPN by spaCy, contain no
+k/w, end in a letter Spanish words actually end in (drops loanwords like
+`saint`, `debut`), and be unique after accent-stripping (`epoca` and
+`época` are the same puzzle). What survived still needed a read-through:
+names, places, brands, scraped misspellings (`nacio`, `volvi`), clitic
+forms (`darlo`, `denme`) and untranslated English are in explicit
+blocklists in the script.
+
+For scale, the old engine picked `SERBA` (zipf 1.21) and `LANDE` (1.67) as
+two leagues' answers during testing, where `perro` scores 4.90. 505 of the
+old list's 4,541 entries were conjugated verb forms scoring 0.00.
+
+Two bugs found and fixed in the same pass:
+
+- **The Ñ key did nothing.** `normalizeWord` decomposed ñ to n + combining
+  tilde and stripped all combining marks, so `PEÑA` and `PENA` were the
+  same word and the Ñ key was indistinguishable from N. Now every accent
+  is stripped *except* a tilde sitting on an n. Accents (á/é/í) are still
+  stripped, as before.
+- **Word selection skipped and repeated.** `hash(day) % length` visits some
+  words never and others twice. Each league now walks its own seeded
+  shuffle of the answer list, so it uses all 1,213 before any repeat —
+  verified over a full cycle. The order is derived from the league id, so
+  nothing about the schedule is stored.
+
+`dictionary.json` stays in the repo as an input to the build script, but is
+no longer imported by the Worker.
