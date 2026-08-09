@@ -12,7 +12,7 @@ FIREBASE_PROJECT_ID = "adivina-la-palabra-ligas"
 # Firebase uids allowed into /api/admin/*, comma separated. Empty means no
 # one is an admin, which is the safe default. Your own uid is shown in the
 # app under the "Contraseña" menu.
-ADMIN_UIDS = ""
+ADMIN_UIDS = "ZXra46W57xd4yL8COHeT8wvRbWH2"
 
 [triggers]
 crons = ["5 0 * * *"] # daily at 00:05 UTC, credits round wins for any round that just closed
