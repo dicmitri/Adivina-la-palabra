@@ -78,6 +78,67 @@ function WordSuggestions({ user }) {
   );
 }
 
+function AcceptedWords({ user }) {
+  const [rows, setRows] = useState(null);
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(null);
+
+  useEffect(() => {
+    apiFetch("/api/admin/words", { user })
+      .then(({ words }) => setRows(words))
+      .catch((err) => setError(err.message));
+  }, []);
+
+  async function remove(word) {
+    if (!window.confirm(`¿Quitar «${word}» del diccionario? Dejará de aceptarse al instante.`)) return;
+    setBusy(word);
+    setError("");
+    try {
+      await apiFetch(`/api/admin/words/${encodeURIComponent(word)}`, { method: "DELETE", user });
+      setRows((prev) => prev.filter((r) => r.word !== word));
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  if (!rows) return <p className="text-sm text-gray-400">Cargando…</p>;
+
+  return (
+    <div>
+      <p className="text-xs text-gray-500 mb-3">
+        Palabras añadidas a mano. Las del diccionario original no aparecen aquí y solo se pueden
+        cambiar regenerando las listas.
+      </p>
+      {error && <p className="text-red-500 text-sm mb-2">{error}</p>}
+      {rows.length === 0 ? (
+        <p className="text-sm text-gray-400 italic">Todavía no has aceptado ninguna palabra.</p>
+      ) : (
+        <div className="space-y-2">
+          {rows.map((r) => (
+            <div key={r.word} className="flex items-center justify-between border rounded p-3">
+              <div>
+                <span className="font-mono font-bold">{r.word}</span>
+                <p className="text-xs text-gray-500 mt-1">
+                  Aceptada por {r.approvedBy || "—"} · {r.approvedAt?.slice(0, 10)}
+                </p>
+              </div>
+              <button
+                disabled={busy === r.word}
+                onClick={() => remove(r.word)}
+                className="text-xs font-bold px-3 py-1.5 rounded border border-red-200 text-red-700 bg-red-50 hover:bg-red-100 disabled:opacity-50"
+              >
+                Quitar
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function LeagueAdmin({ user }) {
   const [leagues, setLeagues] = useState(null);
   const [openId, setOpenId] = useState(null);
@@ -180,6 +241,7 @@ export default function Admin({ user, onClose }) {
       <div className="flex gap-4 border-b mb-4">
         {[
           ["words", "Palabras propuestas"],
+          ["accepted", "Palabras aceptadas"],
           ["leagues", "Ligas"],
         ].map(([id, label]) => (
           <button
@@ -192,7 +254,9 @@ export default function Admin({ user, onClose }) {
         ))}
       </div>
 
-      {tab === "words" ? <WordSuggestions user={user} /> : <LeagueAdmin user={user} />}
+      {tab === "words" && <WordSuggestions user={user} />}
+      {tab === "accepted" && <AcceptedWords user={user} />}
+      {tab === "leagues" && <LeagueAdmin user={user} />}
     </div>
   );
 }

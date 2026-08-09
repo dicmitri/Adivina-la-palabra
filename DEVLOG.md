@@ -218,6 +218,22 @@ requested first) and leagues (reassign the admin to any existing member —
 the server rejects non-members, which would otherwise leave a league
 controlled by someone who cannot see it).
 
+## 2026-08-09 — Accepted words can be removed again
+
+Approving a word was one-way: it went into `extra_words` and nothing in the
+panel could take it back out. Added a "Palabras aceptadas" tab listing the
+manually accepted words with a Quitar action, backed by
+`GET/DELETE /api/admin/words`.
+
+Removing sets the word's suggestions to 'rejected' rather than leaving them
+'approved', so the record cannot claim a word was accepted while the word no
+longer works. Another player proposing it later creates a fresh pending row,
+which reopens the question deliberately.
+
+Only manually added words can be removed this way. Words from the generated
+list are not in `extra_words`, so taking one of those out still means editing
+the build script and regenerating — the tab says so.
+
 ## 2026-08-09 — Spanish error messages
 
 Reported: rejecting an unknown word said "Not a word in the dictionary".

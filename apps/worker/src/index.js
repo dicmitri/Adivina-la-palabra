@@ -9,6 +9,8 @@ import { suggestWord } from "./routes/suggestions.js";
 import {
   listSuggestions,
   decideSuggestion,
+  listExtraWords,
+  removeExtraWord,
   listAllLeagues,
   listLeagueMembers,
   setLeagueAdmin,
@@ -35,6 +37,8 @@ router.post("/api/suggestions", withAuth(suggestWord));
 
 router.get("/api/admin/suggestions", withAuth(listSuggestions));
 router.post("/api/admin/suggestions/:word", withAuth(decideSuggestion));
+router.get("/api/admin/words", withAuth(listExtraWords));
+router.delete("/api/admin/words/:word", withAuth(removeExtraWord));
 router.get("/api/admin/leagues", withAuth(listAllLeagues));
 router.get("/api/admin/leagues/:id/members", withAuth(listLeagueMembers));
 router.post("/api/admin/leagues/:id/admin", withAuth(setLeagueAdmin));

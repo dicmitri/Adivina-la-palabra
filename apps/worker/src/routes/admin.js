@@ -45,6 +45,38 @@ export async function decideSuggestion(request, env, { user, params }) {
   return json({ ok: true, word, decision: body.decision });
 }
 
+export async function listExtraWords(request, env, { user }) {
+  requireSiteAdmin(env, user);
+  const { results } = await env.DB.prepare(
+    `SELECT ew.word, u.username AS approvedBy, ew.approved_at AS approvedAt
+     FROM extra_words ew
+     LEFT JOIN users u ON u.id = ew.approved_by
+     ORDER BY ew.approved_at DESC
+     LIMIT 500`
+  ).all();
+  return json({ words: results });
+}
+
+export async function removeExtraWord(request, env, { user, params }) {
+  requireSiteAdmin(env, user);
+  const word = params.word.toUpperCase();
+
+  const existing = await env.DB.prepare("SELECT 1 FROM extra_words WHERE word = ?")
+    .bind(word)
+    .first();
+  if (!existing) throw new HttpError(404, "Esa palabra no está en la lista de aceptadas");
+
+  // Removing an accepted word is a decision against it, so the suggestions
+  // move to 'rejected' rather than staying 'approved' — otherwise the record
+  // would claim it was accepted while the word no longer works. Another
+  // player can still propose it again later, which reopens the question.
+  await env.DB.batch([
+    env.DB.prepare("DELETE FROM extra_words WHERE word = ?").bind(word),
+    env.DB.prepare("UPDATE word_suggestions SET status = 'rejected' WHERE word = ?").bind(word),
+  ]);
+  return json({ ok: true, word });
+}
+
 export async function listAllLeagues(request, env, { user }) {
   requireSiteAdmin(env, user);
   const { results } = await env.DB.prepare(
