@@ -11,6 +11,7 @@ import { apiFetch } from "./api.js";
 import GameBoard from "./components/GameBoard.jsx";
 import Leaderboard from "./components/Leaderboard.jsx";
 import Admin from "./components/Admin.jsx";
+import Help from "./components/Help.jsx";
 
 // Firebase throws English strings like "Firebase: Error
 // (auth/invalid-credential)." — never show those to a player.
@@ -176,6 +177,7 @@ function ChangePassword() {
 
 function MainApp({ user, profile, isAdmin }) {
   const [showAdmin, setShowAdmin] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
   const [leagues, setLeagues] = useState([]);
   const [selectedLeague, setSelectedLeague] = useState(null);
   const [showCreate, setShowCreate] = useState(false);
@@ -245,6 +247,7 @@ function MainApp({ user, profile, isAdmin }) {
   }
 
   if (showAdmin) return <Admin user={user} onClose={() => setShowAdmin(false)} />;
+  if (showHelp) return <Help onClose={() => setShowHelp(false)} />;
 
   return (
     <div className="min-h-screen text-gray-900 font-sans bg-gray-50">
@@ -365,6 +368,15 @@ function MainApp({ user, profile, isAdmin }) {
             </div>
           </section>
         </div>
+
+        <footer className="mt-10 pb-6 text-center">
+          <button
+            onClick={() => setShowHelp(true)}
+            className="text-xs text-gray-400 underline hover:text-gray-600"
+          >
+            Cómo funciona y cómo se eligen las palabras
+          </button>
+        </footer>
       </main>
     </div>
   );

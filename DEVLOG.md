@@ -249,6 +249,27 @@ Details worth keeping:
 Timing is 300ms per tile with a 55ms stagger (520ms total). `FLIP_MS` in
 `GameBoard.jsx` has to stay in sync with `.tile-reveal` in `index.css`.
 
+## 2026-08-09 — "Cómo funciona" page
+
+Added a help page reached from a small footer link under the game, covering
+the rules (colours, accents and the Ñ, the points table, leagues, rounds and
+trophies) and how the dictionary was built — including why there are two
+lists, and each filter applied to the answers, in plain language rather than
+in terms of zipf scores and lemmas.
+
+It also points players at "¿Debería estarlo?" while explaining that the
+guess list is incomplete on purpose, which is the honest framing: the list is
+ours and will reject real words.
+
+The worked example needed checking rather than writing from intuition. The
+first draft used CARTA vs MAREA with the R marked yellow; running it through
+the real `checkGuess` showed the R is green, since both words have R in third
+place. Switched to CARTA vs RATON, which genuinely produces one of each
+colour.
+
+The word counts on the page are hardcoded, so regenerating the lists means
+updating them — noted in a comment at the top of the component.
+
 ## 2026-08-09 — Tile animation did nothing on mobile
 
 Reported: the reveal had no effect at all on a phone.
