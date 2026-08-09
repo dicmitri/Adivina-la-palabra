@@ -48,7 +48,11 @@ export async function submitGuess(request, env, { user, params }) {
   const guess = normalizeWord(body.guess || "");
 
   if (guess.length !== WORD_LENGTH) return json({ error: "La palabra debe tener 5 letras" }, { status: 400 });
-  if (!isValidWord(guess)) return json({ error: "Esa palabra no está en el diccionario" }, { status: 400 });
+  // "no está en el diccionario" alone reads as a claim about Spanish itself;
+  // the list is ours and incomplete, so say which dictionary we mean.
+  if (!isValidWord(guess)) {
+    return json({ error: "Esa palabra no está en el diccionario del juego" }, { status: 400 });
+  }
 
   const dailyKey = getDailyKey();
   const target = getTargetWord(params.id, dailyKey);
