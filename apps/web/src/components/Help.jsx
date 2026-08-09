@@ -1,29 +1,10 @@
+import ExampleRow from "./ExampleRow.jsx";
+
 // The word counts and thresholds quoted here come from
 // apps/worker/scripts/build_wordlists.py and the lists it generates. If the
 // lists are regenerated with different settings, update this page too.
 const ANSWERS_COUNT = 1213;
 const ALLOWED_COUNT = 8952;
-
-function ExampleRow({ word, statuses }) {
-  const colors = {
-    correct: "bg-green-500 border-green-500 text-white",
-    present: "bg-yellow-500 border-yellow-500 text-white",
-    absent: "bg-gray-500 border-gray-500 text-white",
-    empty: "border-gray-300 bg-white text-black",
-  };
-  return (
-    <div className="flex gap-1 my-2">
-      {word.split("").map((c, i) => (
-        <div
-          key={i}
-          className={`w-8 h-8 border-2 rounded flex items-center justify-center text-sm font-bold ${colors[statuses[i]]}`}
-        >
-          {c}
-        </div>
-      ))}
-    </div>
-  );
-}
 
 function Section({ title, children }) {
   return (
@@ -56,7 +37,9 @@ export default function Help({ onClose, backLabel = "Volver al juego" }) {
         </p>
         {/* Colours verified against the real checkGuess: R and T are in CARTA
             but in other positions, the A in second place is exact. */}
-        <ExampleRow word="RATON" statuses={["present", "correct", "present", "absent", "absent"]} />
+        <div className="my-2">
+          <ExampleRow word="RATON" statuses={["present", "correct", "present", "absent", "absent"]} />
+        </div>
         <ul className="list-disc pl-5 space-y-1">
           <li>
             <span className="font-semibold text-green-700">Verde</span>: la letra está en la

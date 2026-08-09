@@ -73,9 +73,10 @@ fun.
   small, private groups. This version's database and query design assume
   many concurrent leagues and thousands of players, not dozens — so growth
   doesn't require a redesign later.
-- **Social sharing and invite links.** A shareable link to join a league,
-  and a shareable result (e.g. "I got it in 3 tries") — the kind of thing
-  that makes a game like this spread on its own.
+- ~~**Social sharing and invite links.**~~ Done. Finishing a game offers a
+  shareable emoji grid, and every league has a join link (`/?liga=CODE`)
+  that carries a new player through signing up and drops them straight
+  into the league.
 
 Anything beyond that (other languages, monetization, new game modes) is
 intentionally undecided — this document will be updated when those become

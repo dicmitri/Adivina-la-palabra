@@ -14,6 +14,8 @@ import Admin from "./components/Admin.jsx";
 import Help from "./components/Help.jsx";
 import Logo, { LogoStacked } from "./components/Logo.jsx";
 import Privacy from "./components/Privacy.jsx";
+import ExampleRow from "./components/ExampleRow.jsx";
+import { readInviteCode, clearInviteCode, inviteUrl } from "./invite.js";
 
 // Firebase throws English strings like "Firebase: Error
 // (auth/invalid-credential)." — never show those to a player.
@@ -41,6 +43,8 @@ function AuthGate({ children }) {
   // deciding whether to hand over an email address is exactly when someone
   // wants to read them.
   const [page, setPage] = useState(null);
+  // Read once on mount: reading it also strips the parameter from the URL.
+  const [invite] = useState(readInviteCode);
 
   useEffect(() => onAuthStateChanged(auth, setUser), []);
 
@@ -68,7 +72,24 @@ function AuthGate({ children }) {
           <p className="text-sm text-gray-600 text-center">
             Una palabra nueva cada día. Compite con tu familia y tus amigos en ligas privadas.
           </p>
+          {/* Verified against the real checkGuess, as on the help page. */}
+          <ExampleRow
+            word="RATON"
+            statuses={["present", "correct", "present", "absent", "absent"]}
+            className="w-7 h-7 text-xs"
+          />
         </div>
+
+        {invite && (
+          <div className="mb-4 p-3 rounded-lg border border-blue-200 bg-blue-50 text-center">
+            <p className="text-sm text-blue-900">
+              Te han invitado a una liga (<span className="font-mono font-bold">{invite}</span>).
+            </p>
+            <p className="text-xs text-blue-700 mt-1">
+              Entra o crea una cuenta y te unirás automáticamente.
+            </p>
+          </div>
+        )}
 
         <div className="bg-white p-8 rounded-xl shadow-lg border">
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -219,16 +240,38 @@ function MainApp({ user, profile, isAdmin }) {
   const [error, setError] = useState("");
   const [leaderboardRefresh, setLeaderboardRefresh] = useState(0);
   const [showChangePw, setShowChangePw] = useState(false);
+  const [notice, setNotice] = useState("");
 
   async function refreshLeagues() {
     const { leagues: list } = await apiFetch("/api/leagues/mine", { user });
     setLeagues(list);
-    if (list.length > 0 && !selectedLeague) setSelectedLeague(list[0]);
+    setSelectedLeague((current) => current ?? list[0] ?? null);
     return list;
   }
 
   useEffect(() => {
-    refreshLeagues();
+    async function start() {
+      const list = await refreshLeagues();
+      const code = readInviteCode();
+      if (!code) return;
+
+      clearInviteCode();
+      try {
+        const joined = await apiFetch("/api/leagues/join", {
+          method: "POST",
+          user,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ inviteCode: code }),
+        });
+        const updated = await refreshLeagues();
+        setSelectedLeague(updated.find((l) => l.id === joined.id) || null);
+        setNotice(`Te has unido a «${joined.name}».`);
+      } catch (err) {
+        // A bad or expired code should not derail the rest of the app.
+        setError(err.message);
+      }
+    }
+    start();
   }, []);
 
   async function handleCreate(e) {
@@ -335,6 +378,7 @@ function MainApp({ user, profile, isAdmin }) {
             <div className="bg-white p-4 rounded-xl shadow border border-gray-100">
               <h2 className="font-bold text-gray-700 mb-4">Mis Ligas</h2>
               {error && <p className="text-red-500 text-xs mb-2">{error}</p>}
+              {notice && <p className="text-green-700 text-xs mb-2">{notice}</p>}
               <div className="space-y-2">
                 {leagues.map((l) => (
                   <button
@@ -385,8 +429,25 @@ function MainApp({ user, profile, isAdmin }) {
 
               {selectedLeague && (
                 <div className="mt-4 p-2 bg-yellow-50 text-xs text-yellow-800 rounded border border-yellow-100">
-                  <p className="font-bold">Código de Invitación:</p>
-                  <p className="font-mono select-all bg-white p-1 rounded border mt-1">{selectedLeague.inviteCode}</p>
+                  <p className="font-bold">Invita a alguien:</p>
+                  <p className="font-mono select-all bg-white p-1 rounded border mt-1 break-all">
+                    {inviteUrl(selectedLeague.inviteCode)}
+                  </p>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard
+                        ?.writeText(inviteUrl(selectedLeague.inviteCode))
+                        .then(() => setNotice("Enlace copiado."))
+                        .catch(() => setError("No se pudo copiar el enlace."));
+                    }}
+                    className="mt-2 w-full py-1.5 bg-white border rounded text-xs font-bold hover:bg-gray-50"
+                  >
+                    Copiar enlace
+                  </button>
+                  <p className="mt-2 text-[11px]">
+                    O comparte solo el código:{" "}
+                    <span className="font-mono font-bold select-all">{selectedLeague.inviteCode}</span>
+                  </p>
                   {selectedLeague.adminId === user.uid && (
                     <button onClick={handleDeleteLeague} className="mt-3 w-full py-2 bg-red-100 text-red-700 font-bold rounded border border-red-200 hover:bg-red-200">
                       Eliminar Liga

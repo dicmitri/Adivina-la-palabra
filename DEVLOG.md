@@ -249,6 +249,37 @@ Details worth keeping:
 Timing is 300ms per tile with a 55ms stagger (520ms total). `FLIP_MS` in
 `GameBoard.jsx` has to stay in sync with `.tile-reveal` in `index.css`.
 
+## 2026-08-09 — Login screen, invite links
+
+Branded the logged-out screen and made it useful to someone who has never
+seen the game: the stacked tile wordmark, a one-line description, a sample
+result row, and links to the help and privacy pages — which previously could
+not be read without an account, despite being exactly what someone weighs
+before handing over an email address.
+
+Also built join-by-link, which closes the gap where an invited player landed
+on a login form with no idea what to do with the code they had been sent:
+
+- Every league now shows a full `/?liga=CODE` URL with a copy button, rather
+  than only the bare code.
+- Opening that link shows who invited you, then carries the code through
+  signing up and choosing a username and joins the league automatically.
+- The code is parked in `sessionStorage`, since the journey spans several
+  screens. Deliberately not `localStorage` — a forgotten code quietly joining
+  a league weeks later would be surprising.
+- Reading the code also strips the query parameter from the address bar, so
+  refreshing after joining does not look like a fresh invite.
+- A bad code surfaces as an error in the leagues panel and nothing else
+  breaks.
+
+`refreshLeagues` had to change: it selected the first league whenever nothing
+was selected, reading `selectedLeague` from a stale closure. With auto-join
+running two refreshes in a row that raced the explicit selection, so it now
+uses a functional update.
+
+Extracted `ExampleRow` into its own component, shared by the help page and
+the login screen, so the two cannot drift apart.
+
 ## 2026-08-09 — Privacy notice
 
 Added a privacy page, linked from the footer next to the help page. Written
