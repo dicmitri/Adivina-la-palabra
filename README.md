@@ -20,40 +20,47 @@ Both Cloudflare Pages and Workers stay on Cloudflare's free tier (no card on
 file), same as Firebase Auth's free tier — so there's no path to a surprise
 bill on either side.
 
-## One-time setup
+## Live environment
 
-1. **Firebase project** (Auth only): create a new Firebase project in the
-   console, enable Authentication → Email/Password (or whichever providers
-   you want), and copy the Web app config into `apps/web/.env` (copy from
-   `.env.example`). Do not enable Firestore/Storage/Functions on this
-   project — it exists only for Auth.
-2. **Cloudflare D1**: `npx wrangler d1 create adivina-la-palabra`, then paste
-   the returned `database_id` into `apps/worker/wrangler.toml`. Run the
-   schema with `npm run db:migrate:local` (and `:remote` once deployed).
-3. **Worker env**: copy `apps/worker/.dev.vars.example` to
-   `apps/worker/.dev.vars` and fill in `FIREBASE_PROJECT_ID` (also set the
-   same value in `wrangler.toml`'s `[vars]` for the deployed environment).
-4. **Cloudflare Pages**: connect this repo, set the build directory to
-   `apps/web`, build command `npm run build`, output directory `dist`. Add
-   the `VITE_FIREBASE_*` and `VITE_API_BASE_URL` env vars in the Pages
-   project settings (pointing at the deployed Worker's URL).
+| Piece | Where |
+| --- | --- |
+| Site | https://adivina-la-palabra.pages.dev |
+| API (Worker) | https://adivina-la-palabra-api.ristlincin.workers.dev |
+| Database | Cloudflare D1 `adivina-la-palabra` |
+| Auth | Firebase project `adivina-la-palabra-ligas` (Auth only) |
+
+## Deployment
+
+Everything deploys from GitHub Actions on push to `main` — the Worker,
+the D1 schema, and the Pages site. Two repo secrets drive it:
+`CLOUDFLARE_API_TOKEN` (needs **D1:Edit**, **Workers Scripts:Edit** and
+**Pages:Edit** — all three) and `CLOUDFLARE_ACCOUNT_ID` (required; without
+it wrangler tries a `/memberships` lookup that a scoped token cannot do).
+
+`.github/workflows/cloudflare-setup.yml` provisions the D1 database and
+Pages project. It is idempotent and only needs re-running if those are
+deleted.
+
+The frontend's API base URL is not configured anywhere — the deploy
+workflow captures it from the Worker deploy output and passes it to the
+web build, so it cannot drift.
 
 ## Local dev
 
 ```
 npm install
-npm run dev:worker   # Cloudflare Worker on http://localhost:8787
+cp apps/web/.env.example apps/web/.env            # fill in Firebase web config
+cp apps/worker/.dev.vars.example apps/worker/.dev.vars
+npm run dev:worker   # Worker on http://localhost:8787
 npm run dev:web      # Vite dev server
 ```
 
-## Deploy
-
-```
-npm run deploy:worker         # Worker
-# Pages deploys automatically on push once connected in step 4 above
-```
+The Firebase web config values (apiKey/authDomain/projectId) are public by
+design and also live in `.github/workflows/deploy.yml`.
 
 ## Status
 
-Scaffold only: login (Firebase Auth) wired end-to-end to a protected
-`/api/me` Worker route backed by D1. No game logic yet.
+Deployed and reachable: the Worker serves `/api/health`, rejects
+unauthenticated calls, and is bound to D1. The full browser flow
+(signup → create league → guess → leaderboard) has not been exercised
+against the live stack yet.

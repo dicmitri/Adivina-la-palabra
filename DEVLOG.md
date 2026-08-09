@@ -55,3 +55,54 @@ and the score.
   `wrangler dev` smoke test confirming protected routes 401 without a
   token. Not yet tested against a real Firebase project (no project
   created yet) or in a browser.
+
+## 2026-08-09 — Provisioned and deployed
+
+Everything is now live:
+
+- **API**: https://adivina-la-palabra-api.ristlincin.workers.dev
+- **Site**: https://adivina-la-palabra.pages.dev
+- **Firebase project** (Auth only): `adivina-la-palabra-ligas`
+- **D1**: `adivina-la-palabra` (`0bc43d5a-856a-4a6b-b523-85d4d0cba9e0`)
+
+Deployment moved to GitHub Actions. The session container that this work
+happens in has an egress policy that blocks `api.cloudflare.com` (and
+`*.workers.dev`), so nothing Cloudflare-related can be provisioned,
+deployed, or tested from the dev environment — CI runners do all of it.
+`cloudflare-setup.yml` provisions idempotently; `deploy.yml` applies the
+schema, deploys Worker + Pages, and smoke-tests the live URL.
+
+Problems hit along the way, in order:
+
+1. **Firebase project limit.** The primary Google account was at its
+   project quota. Deleting a project does not free a slot immediately —
+   deleted projects sit in a 30-day pending-deletion state and still
+   count. Worked around by creating the project under a secondary Google
+   account; the primary was then added as an Owner so it can be managed
+   from either. Note the project ID `adivina-la-palabra-ligas` is
+   *similar but not identical* to the family app's
+   `adivina-la-palabra---ligas` (three dashes) — different projects,
+   verified by comparing apiKey/appId.
+2. **API token scopes, discovered one at a time.** The token needed
+   D1:Edit, Pages:Edit, *and* Workers Scripts:Edit. Only the first two
+   were granted initially, so the Worker deploy failed with
+   `Authentication error [code: 10000]` against
+   `/accounts/*/workers/services/*` while D1 and Pages steps passed.
+3. **`CLOUDFLARE_ACCOUNT_ID` is not optional.** Without it wrangler tries
+   to auto-discover the account via `/memberships`, which a narrowly
+   scoped token cannot read — producing the same opaque `[code: 10000]`
+   error as a genuine permissions problem. Setting the ID explicitly
+   avoids the lookup entirely.
+4. **No workers.dev subdomain registered.** The Worker uploaded fine but
+   had nowhere to be served from; wrangler prompts for a subdomain
+   interactively and defaults to "no" in CI. Registering one on the
+   account (`ristlincin`) fixed it. This is a one-time, account-wide
+   choice that cannot be automated.
+
+Added a CI smoke test after deploy so a green pipeline means the API
+actually answers, not merely that the upload succeeded — the earlier
+failures all looked like "deploy worked" right up until something
+downstream didn't.
+
+Still untested: the browser flow (signup → create league → guess →
+leaderboard) against the live stack.
