@@ -4,7 +4,7 @@
 //
 // Set this to a real address so people can actually exercise the rights
 // described below. While it is empty the page falls back to vaguer wording.
-const CONTACT_EMAIL = "";
+const CONTACT_EMAIL = "ristlincin@gmail.com";
 
 function Section({ title, children }) {
   return (
