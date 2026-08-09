@@ -12,7 +12,7 @@ import GameBoard from "./components/GameBoard.jsx";
 import Leaderboard from "./components/Leaderboard.jsx";
 import Admin from "./components/Admin.jsx";
 import Help from "./components/Help.jsx";
-import Logo from "./components/Logo.jsx";
+import Logo, { LogoStacked } from "./components/Logo.jsx";
 import Privacy from "./components/Privacy.jsx";
 
 // Firebase throws English strings like "Firebase: Error
@@ -37,11 +37,17 @@ function AuthGate({ children }) {
   const [password, setPassword] = useState("");
   const [isRegister, setIsRegister] = useState(false);
   const [error, setError] = useState("");
+  // The help and privacy pages have to be reachable before signing in —
+  // deciding whether to hand over an email address is exactly when someone
+  // wants to read them.
+  const [page, setPage] = useState(null);
 
   useEffect(() => onAuthStateChanged(auth, setUser), []);
 
   if (user === undefined) return null;
   if (user) return children(user);
+  if (page === "help") return <Help onClose={() => setPage(null)} backLabel="Volver" />;
+  if (page === "privacy") return <Privacy onClose={() => setPage(null)} backLabel="Volver" />;
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -56,8 +62,15 @@ function AuthGate({ children }) {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-      <div className="max-w-sm w-full bg-white p-8 rounded-xl shadow-lg border">
-        <h1 className="text-2xl font-bold text-center text-blue-600 mb-6">Adivina la Palabra</h1>
+      <div className="max-w-sm w-full">
+        <div className="flex flex-col items-center gap-3 mb-6">
+          <LogoStacked />
+          <p className="text-sm text-gray-600 text-center">
+            Una palabra nueva cada día. Compite con tu familia y tus amigos en ligas privadas.
+          </p>
+        </div>
+
+        <div className="bg-white p-8 rounded-xl shadow-lg border">
         <form onSubmit={handleSubmit} className="space-y-4">
           <input
             className="w-full border p-2 rounded"
@@ -84,6 +97,22 @@ function AuthGate({ children }) {
         <button onClick={() => setIsRegister(!isRegister)} className="w-full text-center text-sm text-gray-500 mt-4 underline">
           {isRegister ? "¿Ya tienes cuenta?" : "¿Nuevo? Crea una cuenta"}
         </button>
+        </div>
+
+        <div className="mt-6 flex justify-center gap-4">
+          <button
+            onClick={() => setPage("help")}
+            className="text-xs text-gray-400 underline hover:text-gray-600"
+          >
+            Cómo jugar
+          </button>
+          <button
+            onClick={() => setPage("privacy")}
+            className="text-xs text-gray-400 underline hover:text-gray-600"
+          >
+            Privacidad
+          </button>
+        </div>
       </div>
     </div>
   );

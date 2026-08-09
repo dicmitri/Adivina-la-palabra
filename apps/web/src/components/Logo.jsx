@@ -21,6 +21,35 @@ function Tile({ char, colorIndex, className }) {
   );
 }
 
+// Two lines instead of one, for places with vertical room but not 16 tiles of
+// width — the login card is 384px wide, where the single-line version would
+// overflow.
+export function LogoStacked() {
+  let letterIndex = 0;
+  const lines = [["ADIVINA"], ["LA", "PALABRA"]];
+
+  return (
+    <div aria-label="Adivina la Palabra" role="img" className="flex flex-col items-center gap-1">
+      {lines.map((words, i) => (
+        <span key={i} className="flex items-center gap-2">
+          {words.map((word) => (
+            <span key={word} className="flex gap-1">
+              {word.split("").map((char, j) => (
+                <Tile
+                  key={`${word}-${j}`}
+                  char={char}
+                  colorIndex={letterIndex++}
+                  className="w-7 h-7 text-sm"
+                />
+              ))}
+            </span>
+          ))}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 export default function Logo() {
   // Continuous across word boundaries, so the cycle is not restarted by the
   // spaces.

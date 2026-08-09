@@ -34,13 +34,13 @@ function Section({ title, children }) {
   );
 }
 
-export default function Help({ onClose }) {
+export default function Help({ onClose, backLabel = "Volver al juego" }) {
   return (
     <div className="max-w-2xl mx-auto px-4 py-6">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-xl font-bold">Cómo funciona</h1>
         <button onClick={onClose} className="text-sm underline text-gray-600">
-          Volver al juego
+          {backLabel}
         </button>
       </div>
 
