@@ -1,10 +1,16 @@
 import { json } from "../lib/http.js";
+import { isSiteAdmin } from "../lib/admin.js";
 
 export async function getMe(request, env, { user }) {
   const profile = await env.DB.prepare("SELECT id, username, created_at FROM users WHERE id = ?")
     .bind(user.uid)
     .first();
-  return json({ uid: user.uid, email: user.email, profile: profile ?? null });
+  return json({
+    uid: user.uid,
+    email: user.email,
+    profile: profile ?? null,
+    isAdmin: isSiteAdmin(env, user.uid),
+  });
 }
 
 export async function createProfile(request, env, { user }) {

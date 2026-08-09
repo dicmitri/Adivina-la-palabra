@@ -182,6 +182,42 @@ The trophy cron still has never executed — it fires at 00:05 UTC, and no
 round had closed at the time of writing. Verifying it (including that it is
 idempotent and catches up multiple missed rounds) is the next open task.
 
+## 2026-08-09 — Word suggestions and an admin panel
+
+Players can now propose a rejected word for the dictionary, and there is an
+admin panel to review them and do basic league maintenance.
+
+Two design choices worth recording:
+
+- **One click, not a form.** At the moment of rejection the server already
+  knows the word, the player and that the word is genuinely missing, so a
+  form would only ask for what we have. The error now carries a
+  `canSuggest` flag and the UI offers "¿Debería estarlo? Proponer «X»".
+- **Approved words live in D1, not in the bundle.** `extra_words` is checked
+  at guess time only when the bundled list misses, so accepting a word takes
+  effect immediately instead of waiting for a redeploy, and the common path
+  is still one in-memory Set lookup. Periodically these should be folded
+  back into the generated list.
+
+Spam protection is layered rather than a captcha: an account is required;
+the word must be well formed, the right length, and actually missing (so
+junk and already-valid words never reach the table); one row per
+(word, player) means nobody can inflate a count; and there is a cap of 10
+suggestions per player per day.
+
+Admins are identified by Firebase uid via the `ADMIN_UIDS` var —
+deliberately not by email, because email/password signup does not verify
+the address, so anyone could register with an admin's email and inherit
+their powers. Empty is the default, meaning nobody is an admin. `/api/me`
+returns `isAdmin` so the client can show the entry point, but every
+`/api/admin/*` route re-checks server-side. Since a uid is otherwise
+invisible, the app now shows your own under the "Contraseña" menu.
+
+The panel covers pending words (with a vote count and who asked, most
+requested first) and leagues (reassign the admin to any existing member —
+the server rejects non-members, which would otherwise leave a league
+controlled by someone who cannot see it).
+
 ## 2026-08-09 — Spanish error messages
 
 Reported: rejecting an unknown word said "Not a word in the dictionary".

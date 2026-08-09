@@ -5,6 +5,14 @@ import { getMe, createProfile } from "./routes/me.js";
 import { createLeague, joinLeague, listMyLeagues, updateLeague, deleteLeague } from "./routes/leagues.js";
 import { getToday, submitGuess } from "./routes/game.js";
 import { getLeaderboard } from "./routes/leaderboard.js";
+import { suggestWord } from "./routes/suggestions.js";
+import {
+  listSuggestions,
+  decideSuggestion,
+  listAllLeagues,
+  listLeagueMembers,
+  setLeagueAdmin,
+} from "./routes/admin.js";
 import { processRoundWinners } from "./scheduled.js";
 
 const router = createRouter();
@@ -22,6 +30,14 @@ router.delete("/api/leagues/:id", withAuth(deleteLeague));
 router.get("/api/leagues/:id/today", withAuth(getToday));
 router.post("/api/leagues/:id/guess", withAuth(submitGuess));
 router.get("/api/leagues/:id/leaderboard", withAuth(getLeaderboard));
+
+router.post("/api/suggestions", withAuth(suggestWord));
+
+router.get("/api/admin/suggestions", withAuth(listSuggestions));
+router.post("/api/admin/suggestions/:word", withAuth(decideSuggestion));
+router.get("/api/admin/leagues", withAuth(listAllLeagues));
+router.get("/api/admin/leagues/:id/members", withAuth(listLeagueMembers));
+router.post("/api/admin/leagues/:id/admin", withAuth(setLeagueAdmin));
 
 function withAuth(handler) {
   return async (request, env, ctx) => {

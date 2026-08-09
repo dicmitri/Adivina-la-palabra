@@ -48,3 +48,24 @@ CREATE TABLE IF NOT EXISTS round_wins (
   wins INTEGER NOT NULL DEFAULT 0,
   PRIMARY KEY (league_id, user_id)
 );
+
+-- Words players think should be accepted. One row per (word, player), so a
+-- player cannot inflate a word's count, but the number of distinct players
+-- asking for a word is a useful signal when reviewing it.
+CREATE TABLE IF NOT EXISTS word_suggestions (
+  word TEXT NOT NULL,             -- normalised: uppercase, accents stripped, ñ kept
+  user_id TEXT NOT NULL REFERENCES users(id),
+  created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now')),
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+  PRIMARY KEY (word, user_id)
+);
+CREATE INDEX IF NOT EXISTS idx_word_suggestions_status ON word_suggestions(status, word);
+
+-- Approved additions to the guess list. Checked at guess time alongside the
+-- bundled list, so accepting a word takes effect immediately rather than
+-- waiting for a redeploy.
+CREATE TABLE IF NOT EXISTS extra_words (
+  word TEXT PRIMARY KEY,
+  approved_by TEXT NOT NULL REFERENCES users(id),
+  approved_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now'))
+);

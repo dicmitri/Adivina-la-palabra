@@ -10,6 +10,7 @@ import { auth } from "./firebase.js";
 import { apiFetch } from "./api.js";
 import GameBoard from "./components/GameBoard.jsx";
 import Leaderboard from "./components/Leaderboard.jsx";
+import Admin from "./components/Admin.jsx";
 
 // Firebase throws English strings like "Firebase: Error
 // (auth/invalid-credential)." — never show those to a player.
@@ -173,7 +174,8 @@ function ChangePassword() {
   );
 }
 
-function MainApp({ user, profile }) {
+function MainApp({ user, profile, isAdmin }) {
+  const [showAdmin, setShowAdmin] = useState(false);
   const [leagues, setLeagues] = useState([]);
   const [selectedLeague, setSelectedLeague] = useState(null);
   const [showCreate, setShowCreate] = useState(false);
@@ -242,12 +244,22 @@ function MainApp({ user, profile }) {
     }
   }
 
+  if (showAdmin) return <Admin user={user} onClose={() => setShowAdmin(false)} />;
+
   return (
     <div className="min-h-screen text-gray-900 font-sans bg-gray-50">
       <header className="sticky top-0 z-50 px-4 h-16 flex items-center justify-between bg-white/80 backdrop-blur border-b shadow-sm">
         <span className="font-bold text-lg text-gray-800">Adivina la Palabra</span>
         <div className="flex items-center gap-4 relative">
           <span className="font-medium text-sm text-gray-700">{profile.username}</span>
+          {isAdmin && (
+            <button
+              onClick={() => setShowAdmin(true)}
+              className="text-xs font-medium text-indigo-600 border border-indigo-200 bg-indigo-50 px-3 py-1.5 rounded-md hover:bg-indigo-100"
+            >
+              Admin
+            </button>
+          )}
           <button
             onClick={() => setShowChangePw((v) => !v)}
             className="text-xs font-medium text-gray-600 border border-gray-200 bg-gray-50 px-3 py-1.5 rounded-md hover:bg-gray-100"
@@ -258,8 +270,14 @@ function MainApp({ user, profile }) {
             Salir
           </button>
           {showChangePw && (
-            <div className="absolute top-full right-0 mt-2 w-64 bg-white p-4 rounded-xl shadow-lg border z-50">
+            <div className="absolute top-full right-0 mt-2 w-72 bg-white p-4 rounded-xl shadow-lg border z-50">
               <ChangePassword />
+              <div className="mt-3 pt-3 border-t">
+                <p className="text-[10px] text-gray-400 mb-1">Tu ID de usuario</p>
+                <p className="font-mono text-[10px] break-all select-all bg-gray-50 p-1 rounded border">
+                  {user.uid}
+                </p>
+              </div>
             </div>
           )}
         </div>
@@ -354,14 +372,18 @@ function MainApp({ user, profile }) {
 
 function AuthedApp({ user }) {
   const [profile, setProfile] = useState(undefined);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    apiFetch("/api/me", { user }).then((data) => setProfile(data.profile));
+    apiFetch("/api/me", { user }).then((data) => {
+      setProfile(data.profile);
+      setIsAdmin(Boolean(data.isAdmin));
+    });
   }, [user]);
 
   if (profile === undefined) return null;
   if (!profile) return <ChooseUsername user={user} onCreated={setProfile} />;
-  return <MainApp user={user} profile={profile} />;
+  return <MainApp user={user} profile={profile} isAdmin={isAdmin} />;
 }
 
 export default function App() {

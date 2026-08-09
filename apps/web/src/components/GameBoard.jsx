@@ -108,6 +108,9 @@ export default function GameBoard({ league, user, onScoreChange }) {
   const [currentGuess, setCurrentGuess] = useState("");
   const [msg, setMsg] = useState("");
   const [loading, setLoading] = useState(false);
+  // The word the server just rejected, offered back for the player to
+  // propose. Cleared as soon as they type again.
+  const [rejectedWord, setRejectedWord] = useState(null);
 
   const guesses = state?.guesses || [];
   const feedback = state?.feedback || [];
@@ -135,18 +138,37 @@ export default function GameBoard({ league, user, onScoreChange }) {
       });
       setState(result);
       setCurrentGuess("");
+      setRejectedWord(null);
       if (result.status === "won") onScoreChange?.();
     } catch (err) {
       showMsg(err.message);
+      setRejectedWord(err.body?.canSuggest ? err.body.word : null);
     } finally {
       setLoading(false);
     }
   }
 
+  async function suggestWord() {
+    const word = rejectedWord;
+    setRejectedWord(null);
+    try {
+      await apiFetch("/api/suggestions", {
+        method: "POST",
+        user,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ word }),
+      });
+      showMsg(`¡Gracias! Revisaremos "${word}".`);
+    } catch (err) {
+      showMsg(err.message);
+    }
+  }
+
   function handleKey(key) {
     if (!state || state.status !== "playing") return;
-    if (key === "ENTER") submitGuess();
-    else if (key === "BACKSPACE") setCurrentGuess((p) => p.slice(0, -1));
+    if (key === "ENTER") return submitGuess();
+    setRejectedWord(null);
+    if (key === "BACKSPACE") setCurrentGuess((p) => p.slice(0, -1));
     else if (currentGuess.length < WORD_LENGTH) setCurrentGuess((p) => p + key);
   }
 
@@ -200,6 +222,14 @@ export default function GameBoard({ league, user, onScoreChange }) {
       <div className="mb-4 text-center">
         <h2 className="text-xl font-bold">{league.name}</h2>
         {msg && <div className="text-red-500 font-bold text-sm">{msg}</div>}
+        {rejectedWord && (
+          <button
+            onClick={suggestWord}
+            className="text-xs text-blue-600 underline mt-1 hover:text-blue-800"
+          >
+            ¿Debería estarlo? Proponer «{rejectedWord}»
+          </button>
+        )}
       </div>
 
       <div className="grid gap-2 mb-2">

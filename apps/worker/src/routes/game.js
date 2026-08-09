@@ -1,8 +1,8 @@
 import { json } from "../lib/http.js";
 import { requireMembership } from "../lib/leagues.js";
+import { isGuessable } from "../lib/words.js";
 import {
   normalizeWord,
-  isValidWord,
   checkGuess,
   calculateScore,
   getTargetWord,
@@ -50,8 +50,12 @@ export async function submitGuess(request, env, { user, params }) {
   if (guess.length !== WORD_LENGTH) return json({ error: "La palabra debe tener 5 letras" }, { status: 400 });
   // "no está en el diccionario" alone reads as a claim about Spanish itself;
   // the list is ours and incomplete, so say which dictionary we mean.
-  if (!isValidWord(guess)) {
-    return json({ error: "Esa palabra no está en el diccionario del juego" }, { status: 400 });
+  // `canSuggest` tells the UI to offer "¿Debería estarlo?".
+  if (!(await isGuessable(env, guess))) {
+    return json(
+      { error: "Esa palabra no está en el diccionario del juego", canSuggest: true, word: guess },
+      { status: 400 }
+    );
   }
 
   const dailyKey = getDailyKey();
