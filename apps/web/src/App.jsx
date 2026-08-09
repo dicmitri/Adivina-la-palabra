@@ -255,6 +255,16 @@ function MainApp({ user, profile, isAdmin }) {
         <span className="font-bold text-lg text-gray-800">Adivina la Palabra</span>
         <div className="flex items-center gap-4 relative">
           <span className="font-medium text-sm text-gray-700">{profile.username}</span>
+          {/* Plain text rather than a bordered button, so it reads as
+              secondary next to the account actions. The footer link is easy
+              to miss: the leaderboard column is a full viewport tall, which
+              pushes the bottom of the page well out of sight. */}
+          <button
+            onClick={() => setShowHelp(true)}
+            className="text-xs text-gray-400 underline hover:text-gray-600"
+          >
+            Ayuda
+          </button>
           {isAdmin && (
             <button
               onClick={() => setShowAdmin(true)}
