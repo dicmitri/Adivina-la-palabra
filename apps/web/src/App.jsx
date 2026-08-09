@@ -5,6 +5,7 @@ import {
   createUserWithEmailAndPassword,
   signOut,
   updatePassword,
+  sendPasswordResetEmail,
 } from "firebase/auth";
 import { auth } from "./firebase.js";
 import { apiFetch } from "./api.js";
@@ -39,6 +40,7 @@ function AuthGate({ children }) {
   const [password, setPassword] = useState("");
   const [isRegister, setIsRegister] = useState(false);
   const [error, setError] = useState("");
+  const [resetMsg, setResetMsg] = useState("");
   // The help and privacy pages have to be reachable before signing in —
   // deciding whether to hand over an email address is exactly when someone
   // wants to read them.
@@ -62,6 +64,27 @@ function AuthGate({ children }) {
     } catch (err) {
       setError(authErrorMessage(err));
     }
+  }
+
+  async function handleReset() {
+    setError("");
+    setResetMsg("");
+    if (!email) {
+      setError("Escribe tu email arriba y vuelve a pulsar.");
+      return;
+    }
+    try {
+      await sendPasswordResetEmail(auth, email);
+    } catch (err) {
+      // auth/user-not-found is swallowed on purpose: reporting it would let
+      // anyone check which email addresses have an account here. Only
+      // genuinely different problems are surfaced.
+      if (err.code !== "auth/user-not-found") {
+        setError(authErrorMessage(err));
+        return;
+      }
+    }
+    setResetMsg("Si existe una cuenta con ese email, te hemos enviado un enlace para cambiar la contraseña.");
   }
 
   return (
@@ -111,10 +134,20 @@ function AuthGate({ children }) {
             required
           />
           {error && <p className="text-red-500 text-xs">{error}</p>}
+          {resetMsg && <p className="text-green-700 text-xs">{resetMsg}</p>}
           <button className="w-full bg-blue-600 text-white py-2 rounded font-bold">
             {isRegister ? "Crear cuenta" : "Entrar"}
           </button>
         </form>
+        {!isRegister && (
+          <button
+            type="button"
+            onClick={handleReset}
+            className="w-full text-center text-xs text-gray-500 mt-3 underline"
+          >
+            ¿Olvidaste tu contraseña?
+          </button>
+        )}
         <button onClick={() => setIsRegister(!isRegister)} className="w-full text-center text-sm text-gray-500 mt-4 underline">
           {isRegister ? "¿Ya tienes cuenta?" : "¿Nuevo? Crea una cuenta"}
         </button>
@@ -309,6 +342,26 @@ function MainApp({ user, profile, isAdmin }) {
     }
   }
 
+  async function handleLeaveLeague() {
+    if (!selectedLeague) return;
+    if (
+      !window.confirm(
+        `¿Salir de «${selectedLeague.name}»? Perderás tus puntos y trofeos de esta liga.`
+      )
+    )
+      return;
+    setError("");
+    setNotice("");
+    try {
+      await apiFetch(`/api/leagues/${selectedLeague.id}/leave`, { method: "POST", user });
+      setSelectedLeague(null);
+      await refreshLeagues();
+      setNotice("Has salido de la liga.");
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
   async function handleDeleteLeague() {
     if (!selectedLeague) return;
     if (!window.confirm(`¿Eliminar la liga "${selectedLeague.name}"? Esta acción no se puede deshacer.`)) return;
@@ -448,6 +501,14 @@ function MainApp({ user, profile, isAdmin }) {
                     O comparte solo el código:{" "}
                     <span className="font-mono font-bold select-all">{selectedLeague.inviteCode}</span>
                   </p>
+                  {selectedLeague.adminId !== user.uid && (
+                    <button
+                      onClick={handleLeaveLeague}
+                      className="mt-3 w-full py-2 bg-white text-gray-700 font-bold rounded border hover:bg-gray-50"
+                    >
+                      Salir de la liga
+                    </button>
+                  )}
                   {selectedLeague.adminId === user.uid && (
                     <button onClick={handleDeleteLeague} className="mt-3 w-full py-2 bg-red-100 text-red-700 font-bold rounded border border-red-200 hover:bg-red-200">
                       Eliminar Liga

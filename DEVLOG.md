@@ -249,6 +249,40 @@ Details worth keeping:
 Timing is 300ms per tile with a 55ms stagger (520ms total). `FLIP_MS` in
 `GameBoard.jsx` has to stay in sync with `.tile-reveal` in `index.css`.
 
+## 2026-08-09 — Password reset and leaving a league
+
+Two gaps found by auditing the code against what a public launch needs,
+rather than against the plan — neither was written down anywhere.
+
+**Password reset.** There was none: a forgotten password meant being locked
+out permanently, with no recovery path. Firebase's `sendPasswordResetEmail`
+does the work and Google sends the mail, so there is nothing to host.
+
+The error handling is deliberate: `auth/user-not-found` is swallowed and the
+same "if an account exists, we've sent a link" message is shown either way.
+Reporting the real error would turn the reset form into a way to test which
+email addresses have an account here. Other error codes are surfaced
+normally.
+
+**Leaving a league.** Members were stuck: only the admin could delete the
+whole league. `POST /api/leagues/:id/leave` now removes a member — along with
+their attempts, round scores and trophies *for that league only*. Deleting
+the scores matters: the leaderboard queries `daily_attempts` without joining
+`league_members`, so a departed player would otherwise keep appearing on it.
+
+An admin cannot simply walk out and orphan the league, since nobody would be
+able to rename or delete it afterwards; they are told to hand it over or
+delete it. The exception is an admin who is the last member, where leaving
+and deleting are the same thing, so it just deletes.
+
+Verified against the real schema in sqlite: the admin-with-members case is
+refused, a departing member vanishes from the leaderboard, their trophies for
+that league go, their account and other leagues are untouched, and a
+last-member admin falls through to deletion.
+
+`deleteLeague` and the leave path now share one cascade helper, so the list
+of tables to clean up exists in a single place.
+
 ## 2026-08-09 — Login screen, invite links
 
 Branded the logged-out screen and made it useful to someone who has never

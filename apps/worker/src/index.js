@@ -2,7 +2,14 @@ import { createRouter } from "./router.js";
 import { json, preflightResponse, HttpError } from "./lib/http.js";
 import { requireUser } from "./lib/auth.js";
 import { getMe, createProfile } from "./routes/me.js";
-import { createLeague, joinLeague, listMyLeagues, updateLeague, deleteLeague } from "./routes/leagues.js";
+import {
+  createLeague,
+  joinLeague,
+  listMyLeagues,
+  updateLeague,
+  deleteLeague,
+  leaveLeague,
+} from "./routes/leagues.js";
 import { getToday, submitGuess } from "./routes/game.js";
 import { getLeaderboard } from "./routes/leaderboard.js";
 import { suggestWord } from "./routes/suggestions.js";
@@ -28,6 +35,7 @@ router.post("/api/leagues/join", withAuth(joinLeague));
 router.get("/api/leagues/mine", withAuth(listMyLeagues));
 router.patch("/api/leagues/:id", withAuth(updateLeague));
 router.delete("/api/leagues/:id", withAuth(deleteLeague));
+router.post("/api/leagues/:id/leave", withAuth(leaveLeague));
 
 router.get("/api/leagues/:id/today", withAuth(getToday));
 router.post("/api/leagues/:id/guess", withAuth(submitGuess));

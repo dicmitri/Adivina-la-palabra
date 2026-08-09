@@ -1,6 +1,6 @@
-import { json } from "../lib/http.js";
+import { json, HttpError } from "../lib/http.js";
 import { generateId, generateInviteCode } from "../lib/ids.js";
-import { requireAdmin } from "../lib/leagues.js";
+import { requireAdmin, requireMembership } from "../lib/leagues.js";
 
 const FREQUENCIES = ["daily", "weekly", "quarterly"];
 
@@ -90,10 +90,43 @@ export async function updateLeague(request, env, { user, params }) {
   return json({ ok: true });
 }
 
-export async function deleteLeague(request, env, { user, params }) {
-  await requireAdmin(env, params.id, user.uid);
-
+export async function leaveLeague(request, env, { user, params }) {
+  const league = await requireMembership(env, params.id, user.uid);
   const id = params.id;
+
+  if (league.admin_id === user.uid) {
+    const { count } = await env.DB.prepare(
+      "SELECT COUNT(*) AS count FROM league_members WHERE league_id = ? AND user_id != ?"
+    )
+      .bind(id, user.uid)
+      .first();
+
+    // An admin walking out would leave the league with nobody able to
+    // rename or delete it, so make them hand it over first. Unless they are
+    // the last one there, in which case leaving and deleting are the same
+    // thing and there is no reason to make them do it in two steps.
+    if (count > 0) {
+      throw new HttpError(
+        400,
+        "Eres administrador: pasa la administración a otra persona o elimina la liga."
+      );
+    }
+    await deleteLeagueRows(env, id);
+    return json({ ok: true, deleted: true });
+  }
+
+  // Scores go with the player. Leaving them behind would keep a departed
+  // member on the leaderboard, which the membership check does not filter.
+  await env.DB.batch([
+    env.DB.prepare("DELETE FROM daily_attempts WHERE league_id = ? AND user_id = ?").bind(id, user.uid),
+    env.DB.prepare("DELETE FROM round_scores WHERE league_id = ? AND user_id = ?").bind(id, user.uid),
+    env.DB.prepare("DELETE FROM round_wins WHERE league_id = ? AND user_id = ?").bind(id, user.uid),
+    env.DB.prepare("DELETE FROM league_members WHERE league_id = ? AND user_id = ?").bind(id, user.uid),
+  ]);
+  return json({ ok: true, deleted: false });
+}
+
+async function deleteLeagueRows(env, id) {
   await env.DB.batch([
     env.DB.prepare("DELETE FROM daily_attempts WHERE league_id = ?").bind(id),
     env.DB.prepare("DELETE FROM round_scores WHERE league_id = ?").bind(id),
@@ -101,5 +134,11 @@ export async function deleteLeague(request, env, { user, params }) {
     env.DB.prepare("DELETE FROM league_members WHERE league_id = ?").bind(id),
     env.DB.prepare("DELETE FROM leagues WHERE id = ?").bind(id),
   ]);
+}
+
+export async function deleteLeague(request, env, { user, params }) {
+  await requireAdmin(env, params.id, user.uid);
+
+  await deleteLeagueRows(env, params.id);
   return json({ ok: true });
 }
