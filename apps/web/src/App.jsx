@@ -13,6 +13,7 @@ import Leaderboard from "./components/Leaderboard.jsx";
 import Admin from "./components/Admin.jsx";
 import Help from "./components/Help.jsx";
 import Logo from "./components/Logo.jsx";
+import Privacy from "./components/Privacy.jsx";
 
 // Firebase throws English strings like "Firebase: Error
 // (auth/invalid-credential)." — never show those to a player.
@@ -179,6 +180,7 @@ function ChangePassword() {
 function MainApp({ user, profile, isAdmin }) {
   const [showAdmin, setShowAdmin] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
+  const [showPrivacy, setShowPrivacy] = useState(false);
   const [leagues, setLeagues] = useState([]);
   const [selectedLeague, setSelectedLeague] = useState(null);
   const [showCreate, setShowCreate] = useState(false);
@@ -249,6 +251,7 @@ function MainApp({ user, profile, isAdmin }) {
 
   if (showAdmin) return <Admin user={user} onClose={() => setShowAdmin(false)} />;
   if (showHelp) return <Help onClose={() => setShowHelp(false)} />;
+  if (showPrivacy) return <Privacy onClose={() => setShowPrivacy(false)} />;
 
   return (
     <div className="min-h-screen text-gray-900 font-sans bg-gray-50">
@@ -380,12 +383,18 @@ function MainApp({ user, profile, isAdmin }) {
           </section>
         </div>
 
-        <footer className="mt-10 pb-6 text-center">
+        <footer className="mt-10 pb-6 text-center flex flex-wrap justify-center gap-x-4 gap-y-1">
           <button
             onClick={() => setShowHelp(true)}
             className="text-xs text-gray-400 underline hover:text-gray-600"
           >
             Cómo funciona y cómo se eligen las palabras
+          </button>
+          <button
+            onClick={() => setShowPrivacy(true)}
+            className="text-xs text-gray-400 underline hover:text-gray-600"
+          >
+            Privacidad
           </button>
         </footer>
       </main>

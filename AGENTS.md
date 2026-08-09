@@ -22,6 +22,11 @@ doesn't otherwise have.
   migration file if/when this grows past one file), never as an ad hoc
   `ALTER TABLE` typed directly against the remote database. The schema file
   is the source of truth for what the database looks like.
+- **The privacy notice must stay true.** `apps/web/src/components/Privacy.jsx`
+  states what is collected and what is not — no analytics, no tracking
+  cookies, no ads, and the player's email never stored in D1. Adding any of
+  those, or a new field holding personal data, means updating that page in
+  the same change.
 - **Admin/permission checks are enforced in the Worker**, not just hidden
   in the UI. If a league action (rename, delete, kick a member) should be
   admin-only, the Worker route must check that itself.

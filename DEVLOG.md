@@ -249,6 +249,34 @@ Details worth keeping:
 Timing is 300ms per tile with a 55ms stagger (520ms total). `FLIP_MS` in
 `GameBoard.jsx` has to stay in sync with `.tile-reveal` in `index.css`.
 
+## 2026-08-09 — Privacy notice
+
+Added a privacy page, linked from the footer next to the help page. Written
+against what the code actually does rather than from a template — checked
+first that no analytics is loaded (`firebase.js` initialises app and auth
+only, and there is no `getAnalytics`, gtag or measurementId anywhere), that
+nothing sets a cookie, and what each table really holds.
+
+The useful finding: the player's email is **not** in our database. The
+`users` table is uid, username and created_at. The email exists only inside
+the Firebase token during a request, and in Google's own systems. That is a
+real privacy property worth stating plainly rather than glossing as "we take
+privacy seriously".
+
+The page covers: what Google holds (email, password, IP for abuse
+prevention), what we hold (username, leagues, the actual daily guesses,
+scores, trophies, word suggestions), what other players can see (username,
+points, trophies — not guesses, not email), Cloudflare's role as host, that
+there are no ads today and that personalised advertising would be avoided if
+any were ever needed, plus retention, deletion and access rights.
+
+`CONTACT_EMAIL` at the top of the component is empty; until it is filled the
+deletion section falls back to vaguer wording. It should be set to a real
+address, since the page describes rights people need a way to exercise.
+
+Added a rule to AGENTS.md that the notice has to be updated in the same
+change as anything that alters what is collected.
+
 ## 2026-08-09 — "Cómo funciona" page
 
 Added a help page reached from a small footer link under the game, covering
