@@ -50,7 +50,12 @@ export default function Leaderboard({ league, user, refreshKey }) {
                   {i + 1}
                 </span>
                 <div className="flex items-center">
-                  <span className="font-semibold text-sm text-gray-700">{s.username}</span>
+                  <span
+                    className={`font-semibold text-sm ${s.userId === data?.yesterdayWinner ? "text-yellow-600" : "text-gray-700"}`}
+                    title={s.userId === data?.yesterdayWinner ? "Ganó ayer" : undefined}
+                  >
+                    {s.username}
+                  </span>
                   {s.roundWins > 0 && (
                     <span className="ml-2 text-xs bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded-full" title={`Rondas ganadas: ${s.roundWins}`}>
                       🏆 {s.roundWins}

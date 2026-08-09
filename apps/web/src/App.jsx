@@ -4,6 +4,7 @@ import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signOut,
+  updatePassword,
 } from "firebase/auth";
 import { auth } from "./firebase.js";
 import { apiFetch } from "./api.js";
@@ -115,6 +116,47 @@ function ChooseUsername({ user, onCreated }) {
   );
 }
 
+function ChangePassword() {
+  const [newPw, setNewPw] = useState("");
+  const [msg, setMsg] = useState("");
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setMsg("");
+    try {
+      await updatePassword(auth.currentUser, newPw);
+      setMsg("¡Contraseña actualizada!");
+      setNewPw("");
+    } catch (err) {
+      // Firebase refuses to change a password on a stale session; say so
+      // plainly rather than showing the raw error code.
+      if (err.code === "auth/requires-recent-login") {
+        setMsg("Por seguridad, cierra sesión, vuelve a entrar e inténtalo de nuevo.");
+      } else if (err.code === "auth/weak-password") {
+        setMsg("La contraseña debe tener al menos 6 caracteres.");
+      } else {
+        setMsg("No se pudo actualizar. Inténtalo de nuevo.");
+      }
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-2">
+      <label className="text-xs font-bold text-gray-600">Nueva contraseña</label>
+      <input
+        type="password"
+        className="w-full border p-2 rounded text-sm"
+        value={newPw}
+        onChange={(e) => setNewPw(e.target.value)}
+        minLength={6}
+        required
+      />
+      {msg && <p className="text-xs text-blue-600">{msg}</p>}
+      <button className="w-full bg-blue-600 text-white text-sm py-1.5 rounded font-bold">Guardar</button>
+    </form>
+  );
+}
+
 function MainApp({ user, profile }) {
   const [leagues, setLeagues] = useState([]);
   const [selectedLeague, setSelectedLeague] = useState(null);
@@ -124,6 +166,7 @@ function MainApp({ user, profile }) {
   const [joinCode, setJoinCode] = useState("");
   const [error, setError] = useState("");
   const [leaderboardRefresh, setLeaderboardRefresh] = useState(0);
+  const [showChangePw, setShowChangePw] = useState(false);
 
   async function refreshLeagues() {
     const { leagues: list } = await apiFetch("/api/leagues/mine", { user });
@@ -187,11 +230,22 @@ function MainApp({ user, profile }) {
     <div className="min-h-screen text-gray-900 font-sans bg-gray-50">
       <header className="sticky top-0 z-50 px-4 h-16 flex items-center justify-between bg-white/80 backdrop-blur border-b shadow-sm">
         <span className="font-bold text-lg text-gray-800">Adivina la Palabra</span>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 relative">
           <span className="font-medium text-sm text-gray-700">{profile.username}</span>
+          <button
+            onClick={() => setShowChangePw((v) => !v)}
+            className="text-xs font-medium text-gray-600 border border-gray-200 bg-gray-50 px-3 py-1.5 rounded-md hover:bg-gray-100"
+          >
+            Contraseña
+          </button>
           <button onClick={() => signOut(auth)} className="text-xs font-medium text-red-600 border border-red-200 bg-red-50 px-3 py-1.5 rounded-md hover:bg-red-100">
             Salir
           </button>
+          {showChangePw && (
+            <div className="absolute top-full right-0 mt-2 w-64 bg-white p-4 rounded-xl shadow-lg border z-50">
+              <ChangePassword />
+            </div>
+          )}
         </div>
       </header>
 

@@ -58,6 +58,36 @@ function Keyboard({ onKey, letterStatus }) {
   );
 }
 
+// Accepts a typed character if it is a Spanish letter, folding accented
+// vowels onto their base letter (á → A) but leaving ñ alone, which mirrors
+// how the server compares words.
+function toGameLetter(key) {
+  if (key.length !== 1) return null;
+  const folded = key
+    .normalize("NFD")
+    .replace(/[\u0300-\u0302\u0304-\u036f]/g, "")
+    .replace(/(?<!n)\u0303/gi, "")
+    .normalize("NFC")
+    .toUpperCase();
+  return /^[A-Z\u00d1]$/.test(folded) ? folded : null;
+}
+
+
+const EMOJI = { correct: "🟩", present: "🟨", absent: "⬛" };
+
+function buildShareText({ league, guesses, feedback, status, date }) {
+  const grid = feedback.map((row) => row.map((s) => EMOJI[s] || "⬛").join("")).join("\n");
+  const attempts = status === "won" ? guesses.length : "X";
+  return [
+    `Adivina la Palabra — ${league.name} (${date})`,
+    `${attempts}/${MAX_ATTEMPTS}`,
+    "",
+    grid,
+    "",
+    window.location.origin,
+  ].join("\n");
+}
+
 function buildLetterStatus(guesses, feedback) {
   const status = {};
   guesses.forEach((guess, i) => {
@@ -78,6 +108,9 @@ export default function GameBoard({ league, user, onScoreChange }) {
   const [currentGuess, setCurrentGuess] = useState("");
   const [msg, setMsg] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const guesses = state?.guesses || [];
+  const feedback = state?.feedback || [];
 
   useEffect(() => {
     apiFetch(`/api/leagues/${league.id}/today`, { user }).then(setState);
@@ -117,10 +150,49 @@ export default function GameBoard({ league, user, onScoreChange }) {
     else if (currentGuess.length < WORD_LENGTH) setCurrentGuess((p) => p + key);
   }
 
+  // Physical keyboard. Ignored while focus is in a text field, so typing a
+  // league name or password does not also type into the board.
+  useEffect(() => {
+    function onKeyDown(e) {
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      const tag = e.target?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || e.target?.isContentEditable) return;
+
+      if (e.key === "Enter") return handleKey("ENTER");
+      if (e.key === "Backspace") {
+        e.preventDefault();
+        return handleKey("BACKSPACE");
+      }
+      const letter = toGameLetter(e.key);
+      if (letter) handleKey(letter);
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  });
+
+  async function handleShare() {
+    const text = buildShareText({
+      league,
+      guesses,
+      feedback,
+      status: state.status,
+      date: state.date,
+    });
+    try {
+      // Native share sheet on mobile (covers WhatsApp and everything else);
+      // clipboard is the desktop fallback, where navigator.share is rare.
+      if (navigator.share) await navigator.share({ text });
+      else {
+        await navigator.clipboard.writeText(text);
+        showMsg("¡Resultado copiado!");
+      }
+    } catch (err) {
+      if (err.name !== "AbortError") showMsg("No se pudo compartir");
+    }
+  }
+
   if (!state) return <div className="p-10 text-center">Cargando...</div>;
 
-  const guesses = state.guesses || [];
-  const feedback = state.feedback || [];
   const letterStatus = buildLetterStatus(guesses, feedback);
 
   return (
@@ -150,6 +222,12 @@ export default function GameBoard({ league, user, onScoreChange }) {
         >
           <h3 className="font-bold">{state.status === "won" ? "¡Bien hecho!" : "Ups, fallaste"}</h3>
           {state.word && <p>La palabra era: {state.word}</p>}
+          <button
+            onClick={handleShare}
+            className="mt-3 px-4 py-2 bg-green-600 text-white rounded font-bold shadow hover:bg-green-700 transition-colors"
+          >
+            Compartir resultado
+          </button>
         </div>
       )}
 

@@ -154,3 +154,30 @@ Two bugs found and fixed in the same pass:
 
 `dictionary.json` stays in the repo as an input to the build script, but is
 no longer imported by the Worker.
+
+## 2026-08-09 — Sharing, password change, physical keyboard, gold winner
+
+Four features, three of them restoring things the family app had that the
+rebuild had not yet reached.
+
+- **Share result.** Rebuilds the emoji grid (🟩🟨⬛) from the feedback the
+  server already returns, so the client still never needs the word. Uses
+  the native share sheet where available — which covers WhatsApp, the
+  family app's hardcoded target, plus everything else — and falls back to
+  copying to the clipboard on desktop, where `navigator.share` is rare.
+- **Change password.** Firebase `updatePassword`, with the
+  `auth/requires-recent-login` and `auth/weak-password` cases turned into
+  plain Spanish instead of raw error codes.
+- **Physical keyboard.** The board was click-only on desktop. Now bound to
+  `keydown`, ignoring events while focus is in a text field so typing a
+  league name or a password does not also type into the board. Accented
+  vowels fold onto their base letter (á → A) while ñ stays itself, mirroring
+  the server's own normalisation. (A cedilla folds too, so ç → C; harmless,
+  since C is a valid letter.)
+- **Yesterday's winner in gold.** Needed server data, so the leaderboard
+  endpoint now also returns `yesterdayWinner`. Requires a score above zero,
+  so nobody gets crowned on a day when nobody solved the word.
+
+The trophy cron still has never executed — it fires at 00:05 UTC, and no
+round had closed at the time of writing. Verifying it (including that it is
+idempotent and catches up multiple missed rounds) is the next open task.
