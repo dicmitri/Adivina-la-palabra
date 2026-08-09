@@ -12,6 +12,7 @@ import GameBoard from "./components/GameBoard.jsx";
 import Leaderboard from "./components/Leaderboard.jsx";
 import Admin from "./components/Admin.jsx";
 import Help from "./components/Help.jsx";
+import Logo from "./components/Logo.jsx";
 
 // Firebase throws English strings like "Firebase: Error
 // (auth/invalid-credential)." — never show those to a player.
@@ -252,7 +253,7 @@ function MainApp({ user, profile, isAdmin }) {
   return (
     <div className="min-h-screen text-gray-900 font-sans bg-gray-50">
       <header className="sticky top-0 z-50 px-4 h-16 flex items-center justify-between bg-white/80 backdrop-blur border-b shadow-sm">
-        <span className="font-bold text-lg text-gray-800">Adivina la Palabra</span>
+        <Logo />
         <div className="flex items-center gap-4 relative">
           <span className="font-medium text-sm text-gray-700">{profile.username}</span>
           {/* Plain text rather than a bordered button, so it reads as
