@@ -8,8 +8,8 @@ export async function createLeague(request, env, { user }) {
   const body = await request.json().catch(() => ({}));
   const name = (body.name || "").trim();
   const frequency = body.frequency;
-  if (!name || name.length > 40) return json({ error: "Invalid name" }, { status: 400 });
-  if (!FREQUENCIES.includes(frequency)) return json({ error: "Invalid frequency" }, { status: 400 });
+  if (!name || name.length > 40) return json({ error: "Nombre de liga no válido" }, { status: 400 });
+  if (!FREQUENCIES.includes(frequency)) return json({ error: "Frecuencia no válida" }, { status: 400 });
 
   const id = generateId("league");
   let inviteCode = null;
@@ -32,7 +32,7 @@ export async function createLeague(request, env, { user }) {
       if (!/UNIQUE constraint failed: leagues\.invite_code/i.test(err.message)) throw err;
     }
   }
-  if (!inviteCode) return json({ error: "Could not allocate an invite code, try again" }, { status: 503 });
+  if (!inviteCode) return json({ error: "No se pudo generar un código de invitación, inténtalo de nuevo" }, { status: 503 });
 
   return json({ id, name, frequency, inviteCode, adminId: user.uid });
 }
@@ -43,7 +43,7 @@ export async function joinLeague(request, env, { user }) {
   const league = await env.DB.prepare("SELECT id, name, frequency FROM leagues WHERE invite_code = ?")
     .bind(inviteCode)
     .first();
-  if (!league) return json({ error: "No league with that invite code" }, { status: 404 });
+  if (!league) return json({ error: "No existe ninguna liga con ese código" }, { status: 404 });
 
   await env.DB.prepare(
     "INSERT INTO league_members (league_id, user_id) VALUES (?, ?) ON CONFLICT (league_id, user_id) DO NOTHING"
@@ -81,7 +81,7 @@ export async function updateLeague(request, env, { user, params }) {
     updates.push("frequency = ?");
     values.push(body.frequency);
   }
-  if (!updates.length) return json({ error: "Nothing to update" }, { status: 400 });
+  if (!updates.length) return json({ error: "No hay nada que actualizar" }, { status: 400 });
 
   values.push(params.id);
   await env.DB.prepare(`UPDATE leagues SET ${updates.join(", ")} WHERE id = ?`)

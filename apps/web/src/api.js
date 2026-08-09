@@ -6,10 +6,18 @@ export async function apiFetch(path, { user, ...options } = {}) {
     const idToken = await user.getIdToken();
     headers.Authorization = `Bearer ${idToken}`;
   }
-  const res = await fetch(`${API_BASE_URL}${path}`, { ...options, headers });
+  let res;
+  try {
+    res = await fetch(`${API_BASE_URL}${path}`, { ...options, headers });
+  } catch {
+    // fetch only rejects on network failure, never on an HTTP error status.
+    throw new Error("Sin conexión con el servidor. Comprueba tu internet.");
+  }
   if (!res.ok) {
+    // The API sends Spanish messages; the fallback covers responses that
+    // never reached it (a proxy error page, say) and so have no JSON body.
     const body = await res.json().catch(() => ({}));
-    throw new Error(body.error || `Request failed: ${res.status}`);
+    throw new Error(body.error || `Error del servidor (${res.status}). Inténtalo de nuevo.`);
   }
   return res.json();
 }

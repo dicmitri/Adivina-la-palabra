@@ -181,3 +181,23 @@ rebuild had not yet reached.
 The trophy cron still has never executed — it fires at 00:05 UTC, and no
 round had closed at the time of writing. Verifying it (including that it is
 idempotent and catches up multiple missed rounds) is the next open task.
+
+## 2026-08-09 — Spanish error messages
+
+Reported: rejecting an unknown word said "Not a word in the dictionary".
+Every user-facing string in the app was English; the game text had been
+written in Spanish but the error paths never were.
+
+Translated all 19 Worker error strings, and three other sources of English
+that would have surfaced the same way:
+
+- Firebase auth errors were shown raw (`Firebase: Error
+  (auth/invalid-credential).`) on the login screen — the first thing a new
+  player sees. Now mapped by error code to Spanish, with a generic fallback
+  for codes not in the map.
+- `apiFetch` fell back to `Request failed: 500` when a response had no JSON
+  body, and a network failure surfaced as the browser's own English
+  `TypeError`. Both now produce Spanish.
+- Token verification failures no longer leak the reason to the client, so
+  the detail is written to the Worker log instead — otherwise translating
+  the message would have thrown away the only diagnostic.

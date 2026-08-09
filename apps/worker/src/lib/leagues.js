@@ -9,13 +9,13 @@ export async function requireMembership(env, leagueId, userId) {
   )
     .bind(leagueId, userId)
     .first();
-  if (!league) throw new HttpError(403, "Not a member of this league");
+  if (!league) throw new HttpError(403, "No perteneces a esta liga");
   return league;
 }
 
 export async function requireAdmin(env, leagueId, userId) {
   const league = await env.DB.prepare("SELECT * FROM leagues WHERE id = ?").bind(leagueId).first();
-  if (!league) throw new HttpError(404, "League not found");
-  if (league.admin_id !== userId) throw new HttpError(403, "Admin only");
+  if (!league) throw new HttpError(404, "Liga no encontrada");
+  if (league.admin_id !== userId) throw new HttpError(403, "Solo el administrador de la liga puede hacer esto");
   return league;
 }

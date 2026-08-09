@@ -11,6 +11,22 @@ import { apiFetch } from "./api.js";
 import GameBoard from "./components/GameBoard.jsx";
 import Leaderboard from "./components/Leaderboard.jsx";
 
+// Firebase throws English strings like "Firebase: Error
+// (auth/invalid-credential)." — never show those to a player.
+const AUTH_ERRORS = {
+  "auth/invalid-email": "Ese email no es válido.",
+  "auth/invalid-credential": "Email o contraseña incorrectos.",
+  "auth/wrong-password": "Email o contraseña incorrectos.",
+  "auth/user-not-found": "Email o contraseña incorrectos.",
+  "auth/email-already-in-use": "Ya existe una cuenta con ese email.",
+  "auth/weak-password": "La contraseña debe tener al menos 6 caracteres.",
+  "auth/too-many-requests": "Demasiados intentos. Espera un momento e inténtalo de nuevo.",
+  "auth/network-request-failed": "Sin conexión. Comprueba tu internet.",
+};
+
+const authErrorMessage = (err) =>
+  AUTH_ERRORS[err?.code] || "No se pudo completar la operación. Inténtalo de nuevo.";
+
 function AuthGate({ children }) {
   const [user, setUser] = useState(undefined); // undefined = still checking
   const [email, setEmail] = useState("");
@@ -30,7 +46,7 @@ function AuthGate({ children }) {
       if (isRegister) await createUserWithEmailAndPassword(auth, email, password);
       else await signInWithEmailAndPassword(auth, email, password);
     } catch (err) {
-      setError(err.message);
+      setError(authErrorMessage(err));
     }
   }
 

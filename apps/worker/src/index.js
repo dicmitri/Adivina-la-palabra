@@ -36,14 +36,14 @@ export default {
 
     const url = new URL(request.url);
     const matched = router.match(request.method, url.pathname);
-    if (!matched) return json({ error: "Not found" }, { status: 404 });
+    if (!matched) return json({ error: "No encontrado" }, { status: 404 });
 
     try {
       return await matched.handler(request, env, { params: matched.params });
     } catch (err) {
       if (err instanceof HttpError) return json({ error: err.message }, { status: err.status });
       console.error(err);
-      return json({ error: "Internal error" }, { status: 500 });
+      return json({ error: "Error del servidor, inténtalo de nuevo" }, { status: 500 });
     }
   },
 

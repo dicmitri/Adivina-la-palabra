@@ -47,8 +47,8 @@ export async function submitGuess(request, env, { user, params }) {
   const body = await request.json().catch(() => ({}));
   const guess = normalizeWord(body.guess || "");
 
-  if (guess.length !== WORD_LENGTH) return json({ error: "Guess must have 5 letters" }, { status: 400 });
-  if (!isValidWord(guess)) return json({ error: "Not a word in the dictionary" }, { status: 400 });
+  if (guess.length !== WORD_LENGTH) return json({ error: "La palabra debe tener 5 letras" }, { status: 400 });
+  if (!isValidWord(guess)) return json({ error: "Esa palabra no está en el diccionario" }, { status: 400 });
 
   const dailyKey = getDailyKey();
   const target = getTargetWord(params.id, dailyKey);
@@ -60,12 +60,12 @@ export async function submitGuess(request, env, { user, params }) {
     .first();
 
   if (existing && existing.status !== "playing") {
-    return json({ error: "This round is already finished" }, { status: 409 });
+    return json({ error: "Ya has terminado la partida de hoy" }, { status: 409 });
   }
 
   const guesses = existing ? JSON.parse(existing.guesses_json) : [];
   if (guesses.length >= MAX_ATTEMPTS) {
-    return json({ error: "No attempts left" }, { status: 409 });
+    return json({ error: "No te quedan intentos" }, { status: 409 });
   }
   guesses.push(guess);
 
