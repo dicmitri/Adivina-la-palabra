@@ -4,7 +4,16 @@ import { apiFetch } from "../api.js";
 const WORD_LENGTH = 5;
 const MAX_ATTEMPTS = 6;
 
-function LetterTile({ char, status }) {
+// Matches the Tailwind classes below, so the tile lands on exactly the colour
+// the animation was heading towards.
+const TILE_BG = { correct: "#22c55e", present: "#eab308", absent: "#6b7280" };
+
+const FLIP_VARIANTS = ["up", "down", "right", "left"];
+const STAGGER_MS = 55;
+const FLIP_MS = 300; // keep in sync with .tile-reveal in index.css
+const REVEAL_TOTAL_MS = STAGGER_MS * (WORD_LENGTH - 1) + FLIP_MS;
+
+function LetterTile({ char, status, reveal }) {
   const styles = {
     empty: "border-gray-300 bg-white text-black",
     typing: "border-gray-800 text-black",
@@ -12,9 +21,15 @@ function LetterTile({ char, status }) {
     present: "bg-yellow-500 border-yellow-500 text-white",
     absent: "bg-gray-500 border-gray-500 text-white",
   };
+  const animation = reveal ? `tile-reveal tile-reveal-${reveal.variant}` : "";
+  const animationStyle = reveal
+    ? { animationDelay: `${reveal.index * STAGGER_MS}ms`, "--tile-bg": TILE_BG[status] }
+    : undefined;
+
   return (
     <div
-      className={`w-10 h-10 sm:w-14 sm:h-14 border-2 flex items-center justify-center text-xl sm:text-2xl font-bold rounded ${styles[status] || styles.empty}`}
+      style={animationStyle}
+      className={`w-10 h-10 sm:w-14 sm:h-14 border-2 flex items-center justify-center text-xl sm:text-2xl font-bold rounded ${styles[status] || styles.empty} ${animation}`}
     >
       {char}
     </div>
@@ -111,6 +126,11 @@ export default function GameBoard({ league, user, onScoreChange }) {
   // The word the server just rejected, offered back for the player to
   // propose. Cleared as soon as they type again.
   const [rejectedWord, setRejectedWord] = useState(null);
+  // Which row is currently revealing, and the flip direction drawn for each
+  // of its tiles. Held in state rather than computed at render time so the
+  // directions stay put for the length of the animation instead of being
+  // re-drawn on every re-render.
+  const [reveal, setReveal] = useState(null);
 
   const guesses = state?.guesses || [];
   const feedback = state?.feedback || [];
@@ -118,6 +138,15 @@ export default function GameBoard({ league, user, onScoreChange }) {
   useEffect(() => {
     apiFetch(`/api/leagues/${league.id}/today`, { user }).then(setState);
   }, [league.id, user]);
+
+  // Drop the reveal once it has played, which both releases the tiles back to
+  // their plain classes and lets the end-of-game panel appear — showing it
+  // mid-flip would give the result away before the last tile turns.
+  useEffect(() => {
+    if (!reveal) return;
+    const t = setTimeout(() => setReveal(null), REVEAL_TOTAL_MS);
+    return () => clearTimeout(t);
+  }, [reveal]);
 
   const showMsg = (m) => {
     setMsg(m);
@@ -139,6 +168,13 @@ export default function GameBoard({ league, user, onScoreChange }) {
       setState(result);
       setCurrentGuess("");
       setRejectedWord(null);
+      setReveal({
+        row: result.guesses.length - 1,
+        variants: Array.from(
+          { length: WORD_LENGTH },
+          () => FLIP_VARIANTS[Math.floor(Math.random() * FLIP_VARIANTS.length)]
+        ),
+      });
       if (result.status === "won") onScoreChange?.();
     } catch (err) {
       showMsg(err.message);
@@ -234,19 +270,23 @@ export default function GameBoard({ league, user, onScoreChange }) {
 
       <div className="grid gap-2 mb-2">
         {[...Array(MAX_ATTEMPTS)].map((_, i) => (
-          <div key={i} className="flex justify-center gap-2">
+          <div key={i} className="flex justify-center gap-2 tile-row">
             {[...Array(WORD_LENGTH)].map((_, j) => {
               const guess = guesses[i];
               const isCurrent = i === guesses.length;
               const char = guess ? guess[j] : isCurrent ? currentGuess[j] : "";
               const st = guess ? feedback[i]?.[j] : isCurrent && char ? "typing" : "empty";
-              return <LetterTile key={j} char={char} status={st} />;
+              // Only the row that was just submitted flips; earlier rows and a
+              // reloaded board render straight to their final colours.
+              const tileReveal =
+                reveal?.row === i ? { variant: reveal.variants[j], index: j } : null;
+              return <LetterTile key={j} char={char} status={st} reveal={tileReveal} />;
             })}
           </div>
         ))}
       </div>
 
-      {state.status !== "playing" && (
+      {state.status !== "playing" && !reveal && (
         <div
           className={`p-4 text-center rounded mb-4 ${state.status === "won" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}
         >

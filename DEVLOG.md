@@ -218,6 +218,37 @@ requested first) and leagues (reassign the admin to any existing member —
 the server rejects non-members, which would otherwise leave a league
 controlled by someone who cannot see it).
 
+## 2026-08-09 — Tile reveal animation
+
+Tiles now flip when a guess is submitted, staggered left to right, with the
+direction drawn at random per tile from four variants (rotateX up/down,
+rotateY left/right) so a row never reveals the same way twice.
+
+How the colour swap hides: the tile changes colour at the 50% keyframe, the
+exact moment it is edge-on at 90° and therefore invisible. One set of
+keyframes serves all three result colours by reading `--tile-bg`, set inline
+per tile, instead of writing green/yellow/grey copies of each variant.
+
+Details worth keeping:
+
+- `animation-fill-mode: both` plus a per-tile `animation-delay` means a tile
+  holds the *pre-reveal* look during its stagger delay. Without it, later
+  tiles would flash their result colour before flipping, which gives the
+  answer away.
+- The flip directions live in state rather than being computed at render
+  time; recomputing them would redraw the directions on every re-render
+  mid-animation.
+- The end-of-game panel is now gated on the reveal finishing. It used to be
+  driven straight off status, so "¡Bien hecho!" would appear while tiles were
+  still turning and spoil the last one.
+- The row needs `perspective`, or rotateX/rotateY read as a vertical squash
+  rather than a flip in depth.
+- Honours `prefers-reduced-motion`, which skips the animation and shows the
+  final colours immediately.
+
+Timing is 300ms per tile with a 55ms stagger (520ms total). `FLIP_MS` in
+`GameBoard.jsx` has to stay in sync with `.tile-reveal` in `index.css`.
+
 ## 2026-08-09 — Accepted words can be removed again
 
 Approving a word was one-way: it went into `extra_words` and nothing in the

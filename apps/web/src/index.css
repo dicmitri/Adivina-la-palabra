@@ -1,3 +1,135 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/*
+ * Tile reveal.
+ *
+ * Each tile flips edge-on and swaps to its result colour at the halfway
+ * point, so the colour change is hidden by the tile being invisible at 90°.
+ * The final colour comes from --tile-bg, set inline per tile, which lets one
+ * set of keyframes serve green/yellow/grey without writing three copies.
+ *
+ * Four variants (two axes x two directions) are picked at random per tile so
+ * a row never reveals the same way twice.
+ */
+
+@keyframes tile-flip-up {
+  0%,
+  49% {
+    transform: rotateX(0deg);
+    background-color: #fff;
+    border-color: #d1d5db;
+    color: #000;
+  }
+  50% {
+    transform: rotateX(90deg);
+    background-color: var(--tile-bg);
+    border-color: var(--tile-bg);
+    color: #fff;
+  }
+  100% {
+    transform: rotateX(0deg);
+    background-color: var(--tile-bg);
+    border-color: var(--tile-bg);
+    color: #fff;
+  }
+}
+
+@keyframes tile-flip-down {
+  0%,
+  49% {
+    transform: rotateX(0deg);
+    background-color: #fff;
+    border-color: #d1d5db;
+    color: #000;
+  }
+  50% {
+    transform: rotateX(-90deg);
+    background-color: var(--tile-bg);
+    border-color: var(--tile-bg);
+    color: #fff;
+  }
+  100% {
+    transform: rotateX(0deg);
+    background-color: var(--tile-bg);
+    border-color: var(--tile-bg);
+    color: #fff;
+  }
+}
+
+@keyframes tile-flip-right {
+  0%,
+  49% {
+    transform: rotateY(0deg);
+    background-color: #fff;
+    border-color: #d1d5db;
+    color: #000;
+  }
+  50% {
+    transform: rotateY(90deg);
+    background-color: var(--tile-bg);
+    border-color: var(--tile-bg);
+    color: #fff;
+  }
+  100% {
+    transform: rotateY(0deg);
+    background-color: var(--tile-bg);
+    border-color: var(--tile-bg);
+    color: #fff;
+  }
+}
+
+@keyframes tile-flip-left {
+  0%,
+  49% {
+    transform: rotateY(0deg);
+    background-color: #fff;
+    border-color: #d1d5db;
+    color: #000;
+  }
+  50% {
+    transform: rotateY(-90deg);
+    background-color: var(--tile-bg);
+    border-color: var(--tile-bg);
+    color: #fff;
+  }
+  100% {
+    transform: rotateY(0deg);
+    background-color: var(--tile-bg);
+    border-color: var(--tile-bg);
+    color: #fff;
+  }
+}
+
+.tile-reveal {
+  /* `both` holds the pre-reveal look during the stagger delay, so later tiles
+     stay blank until their turn instead of flashing their colour first. */
+  animation-duration: 300ms;
+  animation-timing-function: ease-in-out;
+  animation-fill-mode: both;
+}
+
+.tile-reveal-up {
+  animation-name: tile-flip-up;
+}
+.tile-reveal-down {
+  animation-name: tile-flip-down;
+}
+.tile-reveal-right {
+  animation-name: tile-flip-right;
+}
+.tile-reveal-left {
+  animation-name: tile-flip-left;
+}
+
+/* Needed for rotateX/rotateY to read as a flip in depth rather than a squash. */
+.tile-row {
+  perspective: 800px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tile-reveal {
+    animation: none;
+  }
+}
